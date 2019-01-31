@@ -72,9 +72,6 @@ jobs:
         command: sbt test:scalafmtCheck
 
     - run:
-        command: sbt it:scalafmtCheck
-
-    - run:
         command: sbt test:compile
         no_output_timeout: 20m
 
