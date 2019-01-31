@@ -57,13 +57,13 @@ jobs:
 
     - checkout
 
-    - *restore-cache
+    - *restore_cache
 
     - run:
         command: sbt update
         no_output_timeout: 20m
 
-    - *save-cache
+    - *save_cache
 
     - run:
         command: sbt scalafmtCheck
@@ -93,7 +93,7 @@ jobs:
 
     - checkout
 
-    - *restore-cache
+    - *restore_cache
 
     - attach_workspace:
         at: .
@@ -139,7 +139,7 @@ jobs:
 
     - checkout
 
-    - *restore-cache
+    - *restore_cache
 
     - attach_workspace:
         at: .
