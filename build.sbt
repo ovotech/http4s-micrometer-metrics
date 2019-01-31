@@ -1,6 +1,6 @@
 lazy val http4sVersion = "0.20.0-M5"
 lazy val micrometerVersion = "1.1.2"
-lazy val catsEffectVersion = "1.1.0"
+lazy val catsEffectVersion = "1.2.0"
 lazy val scalaTestVersion = "3.0.5"
 
 lazy val `http4s-micrometer-metrics` = (project in file(".")).
@@ -11,15 +11,45 @@ lazy val `http4s-micrometer-metrics` = (project in file(".")).
       version      := "0.1.0"
     )),
     name := "http4s-micrometer-metrics",
+    organizationName := "OVO Energy",
+    organizationHomepage := Some(url("https://www.ovoenergy.com/")),
+    homepage := Some(url("https://github.com/ovotech/http4s-micrometer-metrics")),
+    startYear := Some(2019),
+    licenses := Seq(("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))),
+    scmInfo := Some(
+      ScmInfo(
+        url("https://github.com/ovotech/http4s-micrometer-metrics"),
+        "git@github.com:ovotech/http4s-micrometer-metrics.git"
+      )
+    ),
+    // TODO Find a way to extract those from github (sbt plugin)
+    developers := List(
+      Developer(
+        "filippo.deluca",
+        "Filippo De Luca",
+        "filippo.deluca@ovoenergy.com",
+        url("https://github.com/filosganga")
+      )
+    ),
     scalafmtOnCompile := true,
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-effect" % catsEffectVersion,
       "org.http4s" %% "http4s-core" % http4sVersion,
       "io.micrometer" % "micrometer-core" % micrometerVersion,
-      "org.scalatest" % "scalatest_2.12" % scalaTestVersion % Test,
+      "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
       "org.http4s" %% "http4s-testing" % http4sVersion % Test,
       "org.http4s" %% "http4s-server" % http4sVersion % Test,
       "org.http4s" %% "http4s-dsl" % http4sVersion % Test,
       "org.http4s" %% "http4s-client" % http4sVersion % Test,
-    )
+    ),
+    bintrayOrganization := Some("ovotech"),
+    bintrayRepository := "maven",
+    bintrayPackageLabels := Seq(
+      "http4s",
+      "metrics",
+      "micrometer"
+    ),
+    releaseEarlyWith := BintrayPublisher,
+    releaseEarlyNoGpg := true,
+    releaseEarlyEnableSyncToMaven := false
   )
