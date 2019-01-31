@@ -16,14 +16,17 @@ import org.http4s.metrics.MetricsOps
 import org.http4s.metrics.TerminationType
 import org.http4s.metrics.TerminationType.{Abnormal, Error, Timeout}
 
-import io.micrometer.core.instrument.{MeterRegistry, Gauge, Timer, Tag}
+import io.micrometer.core.instrument.{MeterRegistry, Gauge, Timer, Tag, Tags}
 
 case class Config(
     prefix: String,
-    tags: immutable.Seq[Tag] = List.empty
+    tags: Tags = Tags.empty
 )
 
 object Micrometer {
+
+  private val TagsReg = """.*?\[([^\]]*)\]""".r
+  private val TagReg = """([^:]*)\s*:\s*(.*)""".r
 
   def apply[F[_]]: PartiallyAppliedApply[F] = new PartiallyAppliedApply[F]
 
@@ -43,14 +46,33 @@ object Micrometer {
 
       private val prefix = config.prefix
 
-      private def namespace(classifier: Option[String]): String =
-        classifier.map(d => s"${prefix}.${d}").getOrElse(s"${prefix}.default")
+      private def namespace(classifier: Option[String]): String = {
+        val name = classifier
+          .map(_.takeWhile(_ != '[').trim)
+          .getOrElse("default")
+
+        s"${prefix}${name}"
+      }
+
+      private def tags(classifier: Option[String]): Tags = {
+        config.tags and classifier
+          .collect {
+            case TagsReg(tagsString) if tagsString.trim.nonEmpty =>
+              tagsString
+                .split(",")
+                .collect {
+                  case TagReg(key, value) =>
+                    Tags.of(key, value)
+                }
+                .reduce(_ and _)
+          }
+          .getOrElse(Tags.empty)
+      }
 
       private def activeRequestsGauge(
           classifier: Option[String]): F[AtomicInteger] = {
 
         val create = for {
-          _ <- F.delay(println("Creating gauge"))
           created <- new AtomicInteger(0).pure[F]
           gauge <- F.delay(
             Gauge
@@ -60,7 +82,7 @@ object Micrometer {
                   x.doubleValue
                 }
               )
-              .tags(config.tags.asJava)
+              .tags(tags(classifier))
               .register(registry)
           )
 
@@ -93,7 +115,7 @@ object Micrometer {
         F.delay(
             Timer
               .builder(s"${namespace(classifier)}.requests.headers")
-              .tags(config.tags.asJava)
+              .tags(tags(classifier))
               .register(registry))
           .flatMap { timer =>
             F.delay(timer.record(elapsed, TimeUnit.NANOSECONDS))
@@ -111,7 +133,7 @@ object Micrometer {
           .delay(
             Timer
               .builder(s"${namespace(classifier)}.requests.total")
-              .tags(config.tags.asJava)
+              .tags(tags(classifier))
               .register(registry))
           .flatMap { timer =>
             F.delay(timer.record(elapsed, TimeUnit.NANOSECONDS))
@@ -121,7 +143,7 @@ object Micrometer {
           .delay(
             Timer
               .builder(s"${namespace(classifier)}.${requestTimer(method)}")
-              .tags(config.tags.asJava)
+              .tags(tags(classifier))
               .register(registry))
           .flatMap { timer =>
             F.delay(timer.record(elapsed, TimeUnit.NANOSECONDS))
@@ -139,27 +161,27 @@ object Micrometer {
           case hundreds if hundreds < 200 =>
             Timer
               .builder(s"${namespace(classifier)}.1xx-responses")
-              .tags(config.tags.asJava)
+              .tags(tags(classifier))
               .register(registry)
           case twohundreds if twohundreds < 300 =>
             Timer
               .builder(s"${namespace(classifier)}.2xx-responses")
-              .tags(config.tags.asJava)
+              .tags(tags(classifier))
               .register(registry)
           case threehundreds if threehundreds < 400 =>
             Timer
               .builder(s"${namespace(classifier)}.3xx-responses")
-              .tags(config.tags.asJava)
+              .tags(tags(classifier))
               .register(registry)
           case fourhundreds if fourhundreds < 500 =>
             Timer
               .builder(s"${namespace(classifier)}.4xx-responses")
-              .tags(config.tags.asJava)
+              .tags(tags(classifier))
               .register(registry)
           case _ =>
             Timer
               .builder(s"${namespace(classifier)}.5xx-responses")
-              .tags(config.tags.asJava)
+              .tags(tags(classifier))
               .register(registry)
         })
 
@@ -186,7 +208,7 @@ object Micrometer {
               Timer.builder(s"${namespace(classifier)}.abnormal-terminations")
             case Error   => Timer.builder(s"${namespace(classifier)}.errors")
             case Timeout => Timer.builder(s"${namespace(classifier)}.timeouts")
-          }).tags(config.tags.asJava).register(registry))
+          }).tags(tags(classifier)).register(registry))
           .flatMap(timer =>
             F.delay(timer.record(elapsed, TimeUnit.NANOSECONDS)))
       }

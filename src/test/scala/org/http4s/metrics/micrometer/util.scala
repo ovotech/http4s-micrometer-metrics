@@ -13,7 +13,7 @@ import org.http4s.{Request, Response}
 import org.http4s.dsl.io._
 import org.http4s.Method.GET
 
-import io.micrometer.core.instrument.{MeterRegistry, Gauge, Timer, Tag}
+import io.micrometer.core.instrument.{MeterRegistry, Gauge, Timer, Tag, Tags}
 
 object util {
 
@@ -38,18 +38,18 @@ object util {
   }
 
   def meterValue(registry: MeterRegistry, meter: Gauge): Double =
-    registry.get(meter.name).tags(meter.tags.asJava).gauge().value
+    registry.get(meter.name).tags(meter.tags).gauge().value
 
   def meterCount(registry: MeterRegistry, meter: Counter): Double =
-    registry.get(meter.name).tags(meter.tags.asJava).counter().count
+    registry.get(meter.name).tags(meter.tags).counter().count
 
   def meterCount(registry: MeterRegistry, meter: Timer): Long =
-    registry.get(meter.name).tags(meter.tags.asJava).timer().count
+    registry.get(meter.name).tags(meter.tags).timer().count
 
   def meterTotalTime(registry: MeterRegistry, meter: Timer): FiniteDuration =
     FiniteDuration(registry
                      .get(meter.name)
-                     .tags(meter.tags.asJava)
+                     .tags(meter.tags)
                      .timer()
                      .totalTime(TimeUnit.NANOSECONDS)
                      .toLong,
@@ -58,7 +58,7 @@ object util {
   def meterMeanTime(registry: MeterRegistry, meter: Timer): FiniteDuration =
     FiniteDuration(registry
                      .get(meter.name)
-                     .tags(meter.tags.asJava)
+                     .tags(meter.tags)
                      .timer()
                      .mean(TimeUnit.NANOSECONDS)
                      .toLong,
@@ -67,15 +67,15 @@ object util {
   def meterMaxTime(registry: MeterRegistry, meter: Timer): FiniteDuration =
     FiniteDuration(registry
                      .get(meter.name)
-                     .tags(meter.tags.asJava)
+                     .tags(meter.tags)
                      .timer()
                      .max(TimeUnit.NANOSECONDS)
                      .toLong,
                    TimeUnit.NANOSECONDS)
 
-  case class Gauge(name: String, tags: List[Tag] = List.empty)
-  case class Counter(name: String, tags: List[Tag] = List.empty)
-  case class Timer(name: String, tags: List[Tag] = List.empty)
+  case class Gauge(name: String, tags: Tags = Tags.empty)
+  case class Counter(name: String, tags: Tags = Tags.empty)
+  case class Timer(name: String, tags: Tags = Tags.empty)
 
   object FakeClock {
     def apply[F[_]: Sync] = new Clock[F] {

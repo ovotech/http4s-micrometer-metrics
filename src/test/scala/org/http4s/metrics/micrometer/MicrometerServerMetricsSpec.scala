@@ -12,7 +12,7 @@ import org.http4s.Uri.uri
 import org.http4s.dsl.io._
 import org.http4s.server.middleware.Metrics
 
-import io.micrometer.core.instrument.{MeterRegistry, Tag}
+import io.micrometer.core.instrument.{MeterRegistry, Tag, Tags}
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.micrometer.core.instrument.search.MeterNotFoundException
 
@@ -34,7 +34,7 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
   it should "register a 2xx response" in {
     implicit val clock = FakeClock[IO]
     val registry: MeterRegistry = new SimpleMeterRegistry
-    val config: Config = Config("server")
+    val config: Config = Config("server.")
     val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
       Metrics[IO](micrometer)(stubRoutes)
     }.unsafeRunSync
@@ -71,7 +71,7 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
   it should "register a 4xx response" in {
     implicit val clock = FakeClock[IO]
     val registry: MeterRegistry = new SimpleMeterRegistry
-    val config: Config = Config("server")
+    val config: Config = Config("server.")
     val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
       Metrics[IO](micrometer)(stubRoutes)
     }.unsafeRunSync
@@ -109,7 +109,7 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
   it should "register a 5xx response" in {
     implicit val clock = FakeClock[IO]
     val registry: MeterRegistry = new SimpleMeterRegistry
-    val config: Config = Config("server")
+    val config: Config = Config("server.")
     val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
       Metrics[IO](micrometer)(stubRoutes)
     }.unsafeRunSync
@@ -147,7 +147,7 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
   it should "register a GET request" in {
     implicit val clock = FakeClock[IO]
     val registry: MeterRegistry = new SimpleMeterRegistry
-    val config: Config = Config("server")
+    val config: Config = Config("server.")
     val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
       Metrics[IO](micrometer)(stubRoutes)
     }.unsafeRunSync
@@ -188,7 +188,7 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
   it should "register a POST request" in {
     implicit val clock = FakeClock[IO]
     val registry: MeterRegistry = new SimpleMeterRegistry
-    val config: Config = Config("server")
+    val config: Config = Config("server.")
     val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
       Metrics[IO](micrometer)(stubRoutes)
     }.unsafeRunSync
@@ -229,7 +229,7 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
   it should "register a PUT request" in {
     implicit val clock = FakeClock[IO]
     val registry: MeterRegistry = new SimpleMeterRegistry
-    val config: Config = Config("server")
+    val config: Config = Config("server.")
     val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
       Metrics[IO](micrometer)(stubRoutes)
     }.unsafeRunSync
@@ -270,7 +270,7 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
   it should "register a PATCH request" in {
     implicit val clock = FakeClock[IO]
     val registry: MeterRegistry = new SimpleMeterRegistry
-    val config: Config = Config("server")
+    val config: Config = Config("server.")
     val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
       Metrics[IO](micrometer)(stubRoutes)
     }.unsafeRunSync
@@ -311,7 +311,7 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
   it should "register a DELETE request" in {
     implicit val clock = FakeClock[IO]
     val registry: MeterRegistry = new SimpleMeterRegistry
-    val config: Config = Config("server")
+    val config: Config = Config("server.")
     val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
       Metrics[IO](micrometer)(stubRoutes)
     }.unsafeRunSync
@@ -352,7 +352,7 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
   it should "register a HEAD request" in {
     implicit val clock = FakeClock[IO]
     val registry: MeterRegistry = new SimpleMeterRegistry
-    val config: Config = Config("server")
+    val config: Config = Config("server.")
     val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
       Metrics[IO](micrometer)(stubRoutes)
     }.unsafeRunSync
@@ -393,7 +393,7 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
   it should "register a OPTIONS request" in {
     implicit val clock = FakeClock[IO]
     val registry: MeterRegistry = new SimpleMeterRegistry
-    val config: Config = Config("server")
+    val config: Config = Config("server.")
     val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
       Metrics[IO](micrometer)(stubRoutes)
     }.unsafeRunSync
@@ -434,7 +434,7 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
   it should "register an error" in {
     implicit val clock = FakeClock[IO]
     val registry: MeterRegistry = new SimpleMeterRegistry
-    val config: Config = Config("server")
+    val config: Config = Config("server.")
     val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
       Metrics[IO](micrometer)(stubRoutes)
     }.unsafeRunSync
@@ -459,7 +459,7 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
   it should "register an abnormal termination" in {
     implicit val clock = FakeClock[IO]
     val registry: MeterRegistry = new SimpleMeterRegistry
-    val config: Config = Config("server")
+    val config: Config = Config("server.")
     val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
       Metrics[IO](micrometer)(stubRoutes)
     }.unsafeRunSync
@@ -487,7 +487,7 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
   it should "use the provided request classifier" in {
     implicit val clock = FakeClock[IO]
     val registry: MeterRegistry = new SimpleMeterRegistry
-    val config: Config = Config("server")
+    val config: Config = Config("server.")
     val classifierFunc = (_: Request[IO]) => Some("classifier")
     val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
       Metrics[IO](ops = micrometer, classifierF = classifierFunc)(stubRoutes)
@@ -518,6 +518,102 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
     meterCount(registry, Timer("server.classifier.get-requests")) shouldBe 1
     meterMaxTime(registry, Timer("server.classifier.get-requests")) shouldBe 100.milliseconds
     meterTotalTime(registry, Timer("server.classifier.get-requests")) shouldBe 100.milliseconds
+  }
+
+  it should "tags metrics using global tags" in {
+    implicit val clock = FakeClock[IO]
+    val registry: MeterRegistry = new SimpleMeterRegistry
+    val config: Config = Config("server.", tags = Tags.of("foo", "bar"))
+    val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
+      Metrics[IO](micrometer)(stubRoutes)
+    }.unsafeRunSync
+
+    val req = Request[IO](uri = uri("/ok"))
+    val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync
+
+    resp.status shouldBe Status.Ok
+    resp.as[String].unsafeRunSync shouldBe "200 OK"
+
+    a[MeterNotFoundException] should be thrownBy meterCount(
+      registry,
+      Timer("server.default.get-requests", Tags.of("foo", "baz")))
+    a[MeterNotFoundException] should be thrownBy meterCount(
+      registry,
+      Timer("server.default.2xx-responses", Tags.of("foo", "baz")))
+
+    meterCount(
+      registry,
+      Timer("server.default.get-requests", Tags.of("foo", "bar"))) shouldBe 1
+    meterCount(
+      registry,
+      Timer("server.default.2xx-responses", Tags.of("foo", "bar"))) shouldBe 1
+  }
+
+  it should "use the provided request classifier to overwrite the tags" in {
+    implicit val clock = FakeClock[IO]
+    val registry: MeterRegistry = new SimpleMeterRegistry
+    val config: Config =
+      Config("server.", tags = Tags.of("foo", "bar", "bar", "baz"))
+    val classifierFunc =
+      (_: Request[IO]) => Some("classifier[bar:bazv2,baz:bar]")
+    val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
+      Metrics[IO](ops = micrometer, classifierF = classifierFunc)(stubRoutes)
+    }.unsafeRunSync
+
+    val req = Request[IO](uri = uri("/ok"))
+    val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync
+
+    resp.status shouldBe Status.Ok
+    resp.as[String].unsafeRunSync shouldBe "200 OK"
+
+    a[MeterNotFoundException] should be thrownBy meterCount(
+      registry,
+      Timer("server.default.get-requests", Tags.of("foo", "baz", "bar", "baz")))
+    a[MeterNotFoundException] should be thrownBy meterCount(
+      registry,
+      Timer("server.default.2xx-responses",
+            Tags.of("foo", "baz", "bar", "baz")))
+    a[MeterNotFoundException] should be thrownBy meterCount(
+      registry,
+      Timer("server.classifier.get-requests",
+            Tags.of("foo", "baz", "bar", "baz")))
+    a[MeterNotFoundException] should be thrownBy meterCount(
+      registry,
+      Timer("server.classifier.2xx-responses",
+            Tags.of("foo", "baz", "bar", "baz")))
+
+    meterCount(
+      registry,
+      Timer("server.classifier.get-requests",
+            Tags.of("foo", "bar", "bar", "bazv2", "baz", "bar"))) shouldBe 1
+    meterCount(
+      registry,
+      Timer("server.classifier.2xx-responses",
+            Tags.of("foo", "bar", "bar", "bazv2", "baz", "bar"))) shouldBe 1
+  }
+
+  it should "handle classifier with empty tags" in {
+    implicit val clock = FakeClock[IO]
+    val registry: MeterRegistry = new SimpleMeterRegistry
+    val config: Config =
+      Config("server.", tags = Tags.of("foo", "bar", "bar", "baz"))
+    val classifierFunc = (_: Request[IO]) => Some("classifier[]")
+    val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
+      Metrics[IO](ops = micrometer, classifierF = classifierFunc)(stubRoutes)
+    }.unsafeRunSync
+
+    val req = Request[IO](uri = uri("/ok"))
+    val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync
+
+    resp.status shouldBe Status.Ok
+    resp.as[String].unsafeRunSync shouldBe "200 OK"
+
+    meterCount(registry,
+               Timer("server.classifier.get-requests",
+                     Tags.of("foo", "bar", "bar", "baz"))) shouldBe 1
+    meterCount(registry,
+               Timer("server.classifier.2xx-responses",
+                     Tags.of("foo", "bar", "bar", "baz"))) shouldBe 1
   }
 
 }

@@ -41,7 +41,7 @@ class MicrometerClientMetricsSpec
   it should "register a 2xx response" in {
     implicit val clock = FakeClock[IO]
     val registry: MeterRegistry = new SimpleMeterRegistry
-    val config: Config = Config("client")
+    val config: Config = Config("client.")
     val meteredClient = Micrometer[IO](registry, config).map { micrometer =>
       Metrics[IO](micrometer)(client)
     }.unsafeRunSync
@@ -76,7 +76,7 @@ class MicrometerClientMetricsSpec
   it should "register a 4xx response" in {
     implicit val clock = FakeClock[IO]
     val registry: MeterRegistry = new SimpleMeterRegistry
-    val config: Config = Config("client")
+    val config: Config = Config("client.")
     val meteredClient = Micrometer[IO](registry, config).map { micrometer =>
       Metrics[IO](micrometer)(client)
     }.unsafeRunSync
@@ -112,7 +112,7 @@ class MicrometerClientMetricsSpec
   it should "register a 5xx response" in {
     implicit val clock = FakeClock[IO]
     val registry: MeterRegistry = new SimpleMeterRegistry
-    val config: Config = Config("client")
+    val config: Config = Config("client.")
     val meteredClient = Micrometer[IO](registry, config).map { micrometer =>
       Metrics[IO](micrometer)(client)
     }.unsafeRunSync
@@ -151,7 +151,7 @@ class MicrometerClientMetricsSpec
   it should "register a GET request" in {
     implicit val clock = FakeClock[IO]
     val registry: MeterRegistry = new SimpleMeterRegistry
-    val config: Config = Config("client")
+    val config: Config = Config("client.")
     val meteredClient = Micrometer[IO](registry, config).map { micrometer =>
       Metrics[IO](micrometer)(client)
     }.unsafeRunSync
@@ -189,7 +189,7 @@ class MicrometerClientMetricsSpec
   it should "register a POST request" in {
     implicit val clock = FakeClock[IO]
     val registry: MeterRegistry = new SimpleMeterRegistry
-    val config: Config = Config("client")
+    val config: Config = Config("client.")
     val meteredClient = Micrometer[IO](registry, config).map { micrometer =>
       Metrics[IO](micrometer)(client)
     }.unsafeRunSync
@@ -230,7 +230,7 @@ class MicrometerClientMetricsSpec
   it should "register a PUT request" in {
     implicit val clock = FakeClock[IO]
     val registry: MeterRegistry = new SimpleMeterRegistry
-    val config: Config = Config("client")
+    val config: Config = Config("client.")
     val meteredClient = Micrometer[IO](registry, config).map { micrometer =>
       Metrics[IO](micrometer)(client)
     }.unsafeRunSync
@@ -271,7 +271,7 @@ class MicrometerClientMetricsSpec
   it should "register a PATCH request" in {
     implicit val clock = FakeClock[IO]
     val registry: MeterRegistry = new SimpleMeterRegistry
-    val config: Config = Config("client")
+    val config: Config = Config("client.")
     val meteredClient = Micrometer[IO](registry, config).map { micrometer =>
       Metrics[IO](micrometer)(client)
     }.unsafeRunSync
@@ -312,7 +312,7 @@ class MicrometerClientMetricsSpec
   it should "register a DELETE request" in {
     implicit val clock = FakeClock[IO]
     val registry: MeterRegistry = new SimpleMeterRegistry
-    val config: Config = Config("client")
+    val config: Config = Config("client.")
     val meteredClient = Micrometer[IO](registry, config).map { micrometer =>
       Metrics[IO](micrometer)(client)
     }.unsafeRunSync
@@ -353,7 +353,7 @@ class MicrometerClientMetricsSpec
   it should "register a HEAD request" in {
     implicit val clock = FakeClock[IO]
     val registry: MeterRegistry = new SimpleMeterRegistry
-    val config: Config = Config("client")
+    val config: Config = Config("client.")
     val meteredClient = Micrometer[IO](registry, config).map { micrometer =>
       Metrics[IO](micrometer)(client)
     }.unsafeRunSync
@@ -394,7 +394,7 @@ class MicrometerClientMetricsSpec
   it should "register a OPTIONS request" in {
     implicit val clock = FakeClock[IO]
     val registry: MeterRegistry = new SimpleMeterRegistry
-    val config: Config = Config("client")
+    val config: Config = Config("client.")
     val meteredClient = Micrometer[IO](registry, config).map { micrometer =>
       Metrics[IO](micrometer)(client)
     }.unsafeRunSync
@@ -435,7 +435,7 @@ class MicrometerClientMetricsSpec
   it should "register an error" in {
     implicit val clock = FakeClock[IO]
     val registry: MeterRegistry = new SimpleMeterRegistry
-    val config: Config = Config("client")
+    val config: Config = Config("client.")
     val meteredClient = Micrometer[IO](registry, config).map { micrometer =>
       Metrics[IO](micrometer)(client)
     }.unsafeRunSync
@@ -465,7 +465,7 @@ class MicrometerClientMetricsSpec
   it should "register a timeout" in {
     implicit val clock = FakeClock[IO]
     val registry: MeterRegistry = new SimpleMeterRegistry
-    val config: Config = Config("client")
+    val config: Config = Config("client.")
     val meteredClient = Micrometer[IO](registry, config).map { micrometer =>
       Metrics[IO](micrometer)(client)
     }.unsafeRunSync
@@ -495,7 +495,7 @@ class MicrometerClientMetricsSpec
   it should "use the provided request classifier" in {
     implicit val clock = FakeClock[IO]
     val registry: MeterRegistry = new SimpleMeterRegistry
-    val config: Config = Config("client")
+    val config: Config = Config("client.")
     val classifierFunc = (_: Request[IO]) => Some("classifier")
     val meteredClient = Micrometer[IO](registry, config).map { micrometer =>
       Metrics[IO](ops = micrometer, classifierF = classifierFunc)(client)
@@ -529,7 +529,7 @@ class MicrometerClientMetricsSpec
   it should "only record total time and decr active requests after client.run releases" in {
     implicit val clock = FakeClock[IO]
     val registry: MeterRegistry = new SimpleMeterRegistry
-    val config: Config = Config("client")
+    val config: Config = Config("client.")
     val meteredClient = Micrometer[IO](registry, config).map { micrometer =>
       Metrics[IO](micrometer)(client)
     }.unsafeRunSync
