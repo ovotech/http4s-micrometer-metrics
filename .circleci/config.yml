@@ -14,7 +14,7 @@ defaults:
     - /home/circleci/.sbt
     - /home/circleci/.ivy2
 
-- &add-github-host-ssh-key
+- &add_github_host_ssh_key
   run:
     name: Configure git credentials
     command: |
@@ -117,9 +117,9 @@ jobs:
     - attach_workspace:
         at: .
 
-    - *add-github-host-ssh-key
+    - *add_github_host_ssh_key
 
-    - *configure-git-credentials
+    - *configure_git_credentials
 
     - run:
         command: "build/tag.sh"
