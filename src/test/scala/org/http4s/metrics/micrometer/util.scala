@@ -6,7 +6,7 @@ import java.util.concurrent.{TimeUnit, TimeoutException}
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 
-import cats.effect.{Clock, IO, Sync}
+import cats.effect._
 import fs2.Stream
 
 import org.http4s.{Request, Response}
@@ -14,6 +14,7 @@ import org.http4s.dsl.io._
 import org.http4s.Method.GET
 
 import io.micrometer.core.instrument.{MeterRegistry, Gauge, Timer, Tag, Tags}
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 
 object util {
 
@@ -92,5 +93,8 @@ object util {
       }
     }
   }
+
+  val meterRegistryResource: Resource[IO, SimpleMeterRegistry] =
+    Resource.make(IO(new SimpleMeterRegistry))(r => IO(r.close))
 
 }
