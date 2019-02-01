@@ -28,6 +28,140 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
 
   val stubRoutes = HttpRoutes.of[IO](stub)
 
+  def testMetersFor(registry: MeterRegistry,
+                    method: String = "get",
+                    statusCode: String = "2xx",
+                    classifier: String = "default",
+                    termination: String = "normal",
+                    additionalTags: Tags = Tags.empty,
+  ) = {
+
+    // TODO test for non existence of classifier
+
+    val allStatuses = List(
+      "2xx",
+      "3xx",
+      "4xx",
+      "5xx"
+    )
+
+    val allMethods = List(
+      "get",
+      "put",
+      "post",
+      "patch",
+      "delete",
+      "head",
+      "move",
+      "options",
+      "trace",
+      "connect",
+      "other"
+    )
+
+    val allTerminations = List(
+      "abnormal",
+      "error",
+      "timeout"
+    )
+
+    allStatuses.filter(_ != statusCode).foreach { x =>
+      a[MeterNotFoundException] should be thrownBy meterCount(
+        registry,
+        Timer(s"server.${classifier}.response-time",
+              additionalTags and Tags.of("status-code", x))
+      )
+    }
+
+    allMethods.filter(_ != method).foreach { x =>
+      a[MeterNotFoundException] should be thrownBy meterCount(
+        registry,
+        Timer(s"server.${classifier}.response-time",
+              additionalTags and Tags.of("method", x))
+      )
+
+      a[MeterNotFoundException] should be thrownBy meterCount(
+        registry,
+        Timer(s"server.${classifier}.response-headers-time",
+              additionalTags and Tags.of("method", x))
+      )
+    }
+
+    allTerminations.filter(_ != termination).foreach { x =>
+      a[MeterNotFoundException] should be thrownBy meterCount(
+        registry,
+        Timer(s"server.${classifier}.response-time",
+              additionalTags and Tags.of("termination", x))
+      )
+    }
+
+    val responseTimeTags = if (termination != "normal") {
+      Tags.of("termination", termination)
+    } else {
+      Tags.of("status-code",
+              statusCode,
+              "method",
+              method,
+              "termination",
+              termination)
+    }
+
+    meterCount(
+      registry,
+      Timer(
+        s"server.${classifier}.response-time",
+        additionalTags and responseTimeTags
+      )
+    ) shouldBe 1
+
+    if (termination == "normal") {
+      meterMaxTime(
+        registry,
+        Timer(
+          s"server.${classifier}.response-time",
+          additionalTags and responseTimeTags
+        )
+      ) shouldBe 100.milliseconds
+
+      meterTotalTime(
+        registry,
+        Timer(
+          s"server.${classifier}.response-time",
+          additionalTags and responseTimeTags
+        )
+      ) shouldBe 100.milliseconds
+    }
+
+    meterCount(
+      registry,
+      Timer(
+        s"server.${classifier}.response-headers-time",
+        additionalTags and Tags.of("method", method)
+      )
+    ) shouldBe 1
+
+    meterMaxTime(
+      registry,
+      Timer(
+        s"server.${classifier}.response-headers-time",
+        additionalTags and Tags.of("method", method)
+      )
+    ) shouldBe 50.milliseconds
+
+    meterTotalTime(
+      registry,
+      Timer(
+        s"server.${classifier}.response-headers-time",
+        additionalTags and Tags.of("method", method)
+      )
+    ) shouldBe 50.milliseconds
+
+    meterValue(
+      registry,
+      Gauge(s"server.${classifier}.active-requests", additionalTags)
+    ) shouldBe 0
+  }
+
   behavior of "Http routes with a micrometer metrics middleware"
 
   it should "register a 2xx response" in {
@@ -45,27 +179,7 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
         resp.status shouldBe Status.Ok
         resp.as[String].unsafeRunSync shouldBe "200 OK"
 
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("server.default.3xx-responses"))
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("server.default.4xx-responses"))
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("server.default.5xx-responses"))
-
-        meterCount(registry, Timer("server.default.2xx-responses")) shouldBe 1
-        meterValue(registry, Gauge("server.default.active-requests")) shouldBe 0
-        meterCount(registry, Timer("server.default.requests.total")) shouldBe 1
-
-        meterMaxTime(registry, Timer("server.default.requests.total")) shouldBe 100.milliseconds
-        meterMaxTime(registry, Timer("server.default.requests.headers")) shouldBe 50.milliseconds
-        meterMaxTime(registry, Timer("server.default.2xx-responses")) shouldBe 100.milliseconds
-
-        meterTotalTime(registry, Timer("server.default.requests.total")) shouldBe 100.milliseconds
-        meterTotalTime(registry, Timer("server.default.requests.headers")) shouldBe 50.milliseconds
-        meterTotalTime(registry, Timer("server.default.2xx-responses")) shouldBe 100.milliseconds
+        testMetersFor(registry, "get", "2xx")
       }
     }.unsafeRunSync
   }
@@ -87,27 +201,7 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
         resp.status shouldBe Status.BadRequest
         resp.as[String].unsafeRunSync shouldBe "400 Bad Request"
 
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("server.default.2xx-responses"))
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("server.default.3xx-responses"))
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("server.default.5xx-responses"))
-
-        meterCount(registry, Timer("server.default.4xx-responses")) shouldBe 1
-        meterValue(registry, Gauge("server.default.active-requests")) shouldBe 0
-        meterCount(registry, Timer("server.default.requests.total")) shouldBe 1
-
-        meterMaxTime(registry, Timer("server.default.requests.total")) shouldBe 100.milliseconds
-        meterMaxTime(registry, Timer("server.default.requests.headers")) shouldBe 50.milliseconds
-        meterMaxTime(registry, Timer("server.default.4xx-responses")) shouldBe 100.milliseconds
-
-        meterTotalTime(registry, Timer("server.default.requests.total")) shouldBe 100.milliseconds
-        meterTotalTime(registry, Timer("server.default.requests.headers")) shouldBe 50.milliseconds
-        meterTotalTime(registry, Timer("server.default.4xx-responses")) shouldBe 100.milliseconds
+        testMetersFor(registry, "get", "4xx")
       }
     }.unsafeRunSync
   }
@@ -129,71 +223,7 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
         resp.status shouldBe Status.InternalServerError
         resp.as[String].unsafeRunSync shouldBe "500 Internal Server Error"
 
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("server.default.2xx-responses"))
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("server.default.3xx-responses"))
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("server.default.4xx-responses"))
-
-        meterCount(registry, Timer("server.default.5xx-responses")) shouldBe 1
-        meterValue(registry, Gauge("server.default.active-requests")) shouldBe 0
-        meterCount(registry, Timer("server.default.requests.total")) shouldBe 1
-
-        meterMaxTime(registry, Timer("server.default.requests.total")) shouldBe 100.milliseconds
-        meterMaxTime(registry, Timer("server.default.requests.headers")) shouldBe 50.milliseconds
-        meterMaxTime(registry, Timer("server.default.5xx-responses")) shouldBe 100.milliseconds
-
-        meterTotalTime(registry, Timer("server.default.requests.total")) shouldBe 100.milliseconds
-        meterTotalTime(registry, Timer("server.default.requests.headers")) shouldBe 50.milliseconds
-        meterTotalTime(registry, Timer("server.default.5xx-responses")) shouldBe 100.milliseconds
-      }
-    }.unsafeRunSync
-  }
-
-  it should "register a GET request" in {
-    implicit val clock = FakeClock[IO]
-    val config: Config = Config("server.")
-    meterRegistryResource.use { registry =>
-      IO {
-        val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
-          Metrics[IO](micrometer)(stubRoutes)
-        }.unsafeRunSync
-
-        val req = Request[IO](method = GET, uri = uri("/ok"))
-
-        val resp = meteredRoutes.orNotFound(req).unsafeRunSync
-
-        resp.status shouldBe Status.Ok
-        resp.as[String].unsafeRunSync shouldBe "200 OK"
-
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.post-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.put-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.patch-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.delete-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.head-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.move-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.options-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.trace-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.connect-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.other-requests"))
-
-        meterCount(registry, Timer("server.default.get-requests")) shouldBe 1
-        meterMaxTime(registry, Timer("server.default.get-requests")) shouldBe 100.milliseconds
-        meterTotalTime(registry, Timer("server.default.get-requests")) shouldBe 100.milliseconds
+        testMetersFor(registry, "get", "5xx")
       }
     }.unsafeRunSync
   }
@@ -215,30 +245,7 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
         resp.status shouldBe Status.Ok
         resp.as[String].unsafeRunSync shouldBe "200 OK"
 
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.get-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.put-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.patch-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.delete-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.head-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.move-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.options-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.trace-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.connect-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.other-requests"))
-
-        meterCount(registry, Timer("server.default.post-requests")) shouldBe 1
-        meterMaxTime(registry, Timer("server.default.post-requests")) shouldBe 100.milliseconds
-        meterTotalTime(registry, Timer("server.default.post-requests")) shouldBe 100.milliseconds
+        testMetersFor(registry, "post")
       }
     }.unsafeRunSync
   }
@@ -259,30 +266,7 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
         resp.status shouldBe Status.Ok
         resp.as[String].unsafeRunSync shouldBe "200 OK"
 
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.get-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.post-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.patch-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.delete-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.head-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.move-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.options-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.trace-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.connect-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.other-requests"))
-
-        meterCount(registry, Timer("server.default.put-requests")) shouldBe 1
-        meterMaxTime(registry, Timer("server.default.put-requests")) shouldBe 100.milliseconds
-        meterTotalTime(registry, Timer("server.default.put-requests")) shouldBe 100.milliseconds
+        testMetersFor(registry, "put")
       }
     }.unsafeRunSync
   }
@@ -303,30 +287,7 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
         resp.status shouldBe Status.Ok
         resp.as[String].unsafeRunSync shouldBe "200 OK"
 
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.get-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.post-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.put-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.delete-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.head-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.move-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.options-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.trace-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.connect-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.other-requests"))
-
-        meterCount(registry, Timer("server.default.patch-requests")) shouldBe 1
-        meterMaxTime(registry, Timer("server.default.patch-requests")) shouldBe 100.milliseconds
-        meterTotalTime(registry, Timer("server.default.patch-requests")) shouldBe 100.milliseconds
+        testMetersFor(registry, "patch")
       }
     }.unsafeRunSync
   }
@@ -347,30 +308,7 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
         resp.status shouldBe Status.Ok
         resp.as[String].unsafeRunSync shouldBe "200 OK"
 
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.get-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.post-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.put-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.patch-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.head-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.move-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.options-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.trace-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.connect-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.other-requests"))
-
-        meterCount(registry, Timer("server.default.delete-requests")) shouldBe 1
-        meterMaxTime(registry, Timer("server.default.delete-requests")) shouldBe 100.milliseconds
-        meterTotalTime(registry, Timer("server.default.delete-requests")) shouldBe 100.milliseconds
+        testMetersFor(registry, "delete")
       }
     }.unsafeRunSync
   }
@@ -392,30 +330,7 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
         resp.status shouldBe Status.Ok
         resp.as[String].unsafeRunSync shouldBe "200 OK"
 
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.get-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.post-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.put-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.patch-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.delete-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.move-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.options-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.trace-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.connect-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.other-requests"))
-
-        meterCount(registry, Timer("server.default.head-requests")) shouldBe 1
-        meterMaxTime(registry, Timer("server.default.head-requests")) shouldBe 100.milliseconds
-        meterTotalTime(registry, Timer("server.default.head-requests")) shouldBe 100.milliseconds
+        testMetersFor(registry, "head")
       }
     }.unsafeRunSync
   }
@@ -436,30 +351,7 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
         resp.status shouldBe Status.Ok
         resp.as[String].unsafeRunSync shouldBe "200 OK"
 
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.get-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.post-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.put-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.patch-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.delete-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.move-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.head-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.trace-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.connect-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.other-requests"))
-
-        meterCount(registry, Timer("server.default.options-requests")) shouldBe 1
-        meterMaxTime(registry, Timer("server.default.options-requests")) shouldBe 100.milliseconds
-        meterTotalTime(registry, Timer("server.default.options-requests")) shouldBe 100.milliseconds
+        testMetersFor(registry, "options")
       }
     }.unsafeRunSync
   }
@@ -480,15 +372,7 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
 
         resp shouldBe a[Left[_, _]]
 
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.abnormal-terminations"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.timeouts"))
-
-        meterCount(registry, Timer("server.default.errors")) shouldBe 1
-        meterCount(registry, Timer("server.default.get-requests")) shouldBe 1
-        meterCount(registry, Timer("server.default.requests.total")) shouldBe 1
-        meterCount(registry, Timer("server.default.requests.headers")) shouldBe 1
+        testMetersFor(registry, statusCode = "5xx", termination = "error")
       }
     }.unsafeRunSync
   }
@@ -511,15 +395,7 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
         resp.body.attempt.compile.lastOrError.unsafeRunSync shouldBe a[Left[_,
                                                                             _]]
 
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.errors"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("server.default.timeouts"))
-
-        meterCount(registry, Timer("server.default.abnormal-terminations")) shouldBe 1
-        meterCount(registry, Timer("server.default.get-requests")) shouldBe 1
-        meterCount(registry, Timer("server.default.requests.total")) shouldBe 1
-        meterCount(registry, Timer("server.default.requests.headers")) shouldBe 1
+        testMetersFor(registry, termination = "abnormal")
       }
     }.unsafeRunSync
   }
@@ -543,25 +419,7 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
         resp.status shouldBe Status.Ok
         resp.as[String].unsafeRunSync shouldBe "200 OK"
 
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("server.default.get-requests"))
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("server.default.2xx-responses"))
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("server.default.3xx-responses"))
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("server.default.4xx-responses"))
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("server.default.5xx-responses"))
-
-        meterCount(registry, Timer("server.classifier.get-requests")) shouldBe 1
-        meterMaxTime(registry, Timer("server.classifier.get-requests")) shouldBe 100.milliseconds
-        meterTotalTime(registry, Timer("server.classifier.get-requests")) shouldBe 100.milliseconds
+        testMetersFor(registry, classifier = "classifier")
       }
     }.unsafeRunSync
   }
@@ -581,19 +439,7 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
         resp.status shouldBe Status.Ok
         resp.as[String].unsafeRunSync shouldBe "200 OK"
 
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("server.default.get-requests", Tags.of("foo", "baz")))
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("server.default.2xx-responses", Tags.of("foo", "baz")))
-
-        meterCount(
-          registry,
-          Timer("server.default.get-requests", Tags.of("foo", "bar"))) shouldBe 1
-        meterCount(
-          registry,
-          Timer("server.default.2xx-responses", Tags.of("foo", "bar"))) shouldBe 1
+        testMetersFor(registry, additionalTags = Tags.of("foo", "bar"))
       }
     }.unsafeRunSync
   }
@@ -615,30 +461,34 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
     resp.status shouldBe Status.Ok
     resp.as[String].unsafeRunSync shouldBe "200 OK"
 
-    a[MeterNotFoundException] should be thrownBy meterCount(
+    testMetersFor(
       registry,
-      Timer("server.default.get-requests", Tags.of("foo", "baz", "bar", "baz")))
-    a[MeterNotFoundException] should be thrownBy meterCount(
-      registry,
-      Timer("server.default.2xx-responses",
-            Tags.of("foo", "baz", "bar", "baz")))
-    a[MeterNotFoundException] should be thrownBy meterCount(
-      registry,
-      Timer("server.classifier.get-requests",
-            Tags.of("foo", "baz", "bar", "baz")))
-    a[MeterNotFoundException] should be thrownBy meterCount(
-      registry,
-      Timer("server.classifier.2xx-responses",
-            Tags.of("foo", "baz", "bar", "baz")))
+      classifier = "classifier",
+      additionalTags = Tags.of("foo", "bar", "bar", "bazv2", "baz", "bar")
+    )
+  }
 
-    meterCount(
+  it should "use the provided request  empty classifier to overwrite the tags" in {
+    implicit val clock = FakeClock[IO]
+    val registry: MeterRegistry = new SimpleMeterRegistry
+    val config: Config =
+      Config("server.", tags = Tags.of("foo", "bar", "bar", "baz"))
+    val classifierFunc =
+      (_: Request[IO]) => Some("[bar:bazv2,baz:bar]")
+    val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
+      Metrics[IO](ops = micrometer, classifierF = classifierFunc)(stubRoutes)
+    }.unsafeRunSync
+
+    val req = Request[IO](uri = uri("/ok"))
+    val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync
+
+    resp.status shouldBe Status.Ok
+    resp.as[String].unsafeRunSync shouldBe "200 OK"
+
+    testMetersFor(
       registry,
-      Timer("server.classifier.get-requests",
-            Tags.of("foo", "bar", "bar", "bazv2", "baz", "bar"))) shouldBe 1
-    meterCount(
-      registry,
-      Timer("server.classifier.2xx-responses",
-            Tags.of("foo", "bar", "bar", "bazv2", "baz", "bar"))) shouldBe 1
+      additionalTags = Tags.of("foo", "bar", "bar", "bazv2", "baz", "bar")
+    )
   }
 
   it should "handle classifier with empty tags" in {
@@ -657,12 +507,11 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
     resp.status shouldBe Status.Ok
     resp.as[String].unsafeRunSync shouldBe "200 OK"
 
-    meterCount(registry,
-               Timer("server.classifier.get-requests",
-                     Tags.of("foo", "bar", "bar", "baz"))) shouldBe 1
-    meterCount(registry,
-               Timer("server.classifier.2xx-responses",
-                     Tags.of("foo", "bar", "bar", "baz"))) shouldBe 1
+    testMetersFor(
+      registry,
+      classifier = "classifier",
+      additionalTags = Tags.of("foo", "bar", "bar", "baz")
+    )
   }
 
 }

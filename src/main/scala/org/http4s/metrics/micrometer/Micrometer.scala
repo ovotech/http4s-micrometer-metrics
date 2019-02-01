@@ -49,6 +49,7 @@ object Micrometer {
       private def namespace(classifier: Option[String]): String = {
         val name = classifier
           .map(_.takeWhile(_ != '[').trim)
+          .filter(_.nonEmpty)
           .getOrElse("default")
 
         s"${prefix}${name}"
@@ -112,10 +113,28 @@ object Micrometer {
       def recordHeadersTime(method: org.http4s.Method,
                             elapsed: Long,
                             classifier: Option[String]): F[Unit] = {
+
+        val methodTags = method match {
+          case Method.GET     => Tags.of("method", "get")
+          case Method.POST    => Tags.of("method", "post")
+          case Method.PUT     => Tags.of("method", "put")
+          case Method.PATCH   => Tags.of("method", "patch")
+          case Method.HEAD    => Tags.of("method", "head")
+          case Method.MOVE    => Tags.of("method", "move")
+          case Method.OPTIONS => Tags.of("method", "options")
+          case Method.TRACE   => Tags.of("method", "trace")
+          case Method.CONNECT => Tags.of("method", "connect")
+          case Method.DELETE  => Tags.of("method", "delete")
+          case _              => Tags.of("method", "other")
+        }
+
+        val allTags = tags(classifier)
+          .and(methodTags)
+
         F.delay(
             Timer
-              .builder(s"${namespace(classifier)}.requests.headers")
-              .tags(tags(classifier))
+              .builder(s"${namespace(classifier)}.response-headers-time")
+              .tags(allTags)
               .register(registry))
           .flatMap { timer =>
             F.delay(timer.record(elapsed, TimeUnit.NANOSECONDS))
@@ -127,91 +146,66 @@ object Micrometer {
                           elapsed: Long,
                           classifier: Option[String]): F[Unit] = {
 
-        // TODO We do the same thing three time ...maybe there is a better way
+        val terminationTags = Tags.of("termination", "normal")
 
-        val f1 = F
-          .delay(
-            Timer
-              .builder(s"${namespace(classifier)}.requests.total")
-              .tags(tags(classifier))
-              .register(registry))
-          .flatMap { timer =>
-            F.delay(timer.record(elapsed, TimeUnit.NANOSECONDS))
-          }
-
-        val f2 = F
-          .delay(
-            Timer
-              .builder(s"${namespace(classifier)}.${requestTimer(method)}")
-              .tags(tags(classifier))
-              .register(registry))
-          .flatMap { timer =>
-            F.delay(timer.record(elapsed, TimeUnit.NANOSECONDS))
-          }
-
-        val f3 = statusCodeTimer(status, classifier).flatMap { timer =>
-          F.delay(timer.record(elapsed, TimeUnit.NANOSECONDS))
+        val methodTags = method match {
+          case Method.GET     => Tags.of("method", "get")
+          case Method.POST    => Tags.of("method", "post")
+          case Method.PUT     => Tags.of("method", "put")
+          case Method.PATCH   => Tags.of("method", "patch")
+          case Method.HEAD    => Tags.of("method", "head")
+          case Method.MOVE    => Tags.of("method", "move")
+          case Method.OPTIONS => Tags.of("method", "options")
+          case Method.TRACE   => Tags.of("method", "trace")
+          case Method.CONNECT => Tags.of("method", "connect")
+          case Method.DELETE  => Tags.of("method", "delete")
+          case _              => Tags.of("method", "other")
         }
 
-        List(f1, f2, f3).parSequence.void
-      }
-
-      private def statusCodeTimer(status: Status, classifier: Option[String]) =
-        F.delay(status.code match {
+        val statusCodeTags = status.code match {
           case hundreds if hundreds < 200 =>
-            Timer
-              .builder(s"${namespace(classifier)}.1xx-responses")
-              .tags(tags(classifier))
-              .register(registry)
+            Tags.of("status-code", "1xx")
           case twohundreds if twohundreds < 300 =>
-            Timer
-              .builder(s"${namespace(classifier)}.2xx-responses")
-              .tags(tags(classifier))
-              .register(registry)
+            Tags.of("status-code", "2xx")
           case threehundreds if threehundreds < 400 =>
-            Timer
-              .builder(s"${namespace(classifier)}.3xx-responses")
-              .tags(tags(classifier))
-              .register(registry)
+            Tags.of("status-code", "3xx")
           case fourhundreds if fourhundreds < 500 =>
-            Timer
-              .builder(s"${namespace(classifier)}.4xx-responses")
-              .tags(tags(classifier))
-              .register(registry)
+            Tags.of("status-code", "4xx")
           case _ =>
-            Timer
-              .builder(s"${namespace(classifier)}.5xx-responses")
-              .tags(tags(classifier))
-              .register(registry)
-        })
+            Tags.of("status-code", "5xx")
+        }
 
-      private def requestTimer(method: Method): String = method match {
-        case Method.GET     => "get-requests"
-        case Method.POST    => "post-requests"
-        case Method.PUT     => "put-requests"
-        case Method.PATCH   => "patch-requests"
-        case Method.HEAD    => "head-requests"
-        case Method.MOVE    => "move-requests"
-        case Method.OPTIONS => "options-requests"
-        case Method.TRACE   => "trace-requests"
-        case Method.CONNECT => "connect-requests"
-        case Method.DELETE  => "delete-requests"
-        case _              => "other-requests"
+        val allTags = tags(classifier)
+          .and(terminationTags)
+          .and(statusCodeTags)
+          .and(methodTags)
+
+        recordResponseTime(classifier, allTags, elapsed)
       }
 
       def recordAbnormalTermination(
           elapsed: Long,
           terminationType: org.http4s.metrics.TerminationType,
           classifier: Option[String]): F[Unit] = {
-        F.delay((terminationType match {
-            case Abnormal =>
-              Timer.builder(s"${namespace(classifier)}.abnormal-terminations")
-            case Error   => Timer.builder(s"${namespace(classifier)}.errors")
-            case Timeout => Timer.builder(s"${namespace(classifier)}.timeouts")
-          }).tags(tags(classifier)).register(registry))
-          .flatMap(timer =>
-            F.delay(timer.record(elapsed, TimeUnit.NANOSECONDS)))
+
+        val allTags = terminationType match {
+          case Abnormal => Tags.of("termination", "abnormal")
+          case Error    => Tags.of("termination", "error")
+          case Timeout  => Tags.of("termination", "timeout")
+        }
+
+        recordResponseTime(classifier, allTags, elapsed)
       }
+
+      private def recordResponseTime(classifier: Option[String],
+                                     tags: Tags,
+                                     elapsed: Long) = F.delay(
+        Timer
+          .builder(s"${namespace(classifier)}.response-time")
+          .tags(tags)
+          .register(registry)
+          .record(elapsed, TimeUnit.NANOSECONDS)
+      )
     }
   }
 }

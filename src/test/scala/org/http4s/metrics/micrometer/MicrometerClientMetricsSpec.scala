@@ -16,7 +16,7 @@ import org.http4s.dsl.io._
 import org.http4s.client._
 import org.http4s.client.middleware.Metrics
 
-import io.micrometer.core.instrument.{MeterRegistry, Tag}
+import io.micrometer.core.instrument.{MeterRegistry, Tag, Tags}
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.micrometer.core.instrument.search.MeterNotFoundException
 
@@ -35,6 +35,140 @@ class MicrometerClientMetricsSpec
 
   val client = Client.fromHttpApp[IO](HttpApp[IO](stub))
 
+  def testMetersFor(registry: MeterRegistry,
+                    method: String = "get",
+                    statusCode: String = "2xx",
+                    classifier: String = "default",
+                    termination: String = "normal",
+                    additionalTags: Tags = Tags.empty,
+  ) = {
+
+    // TODO test for non existence of classifier
+
+    val allStatuses = List(
+      "2xx",
+      "3xx",
+      "4xx",
+      "5xx"
+    )
+
+    val allMethods = List(
+      "get",
+      "put",
+      "post",
+      "patch",
+      "delete",
+      "head",
+      "move",
+      "options",
+      "trace",
+      "connect",
+      "other"
+    )
+
+    val allTerminations = List(
+      "abnormal",
+      "error",
+      "timeout"
+    )
+
+    allStatuses.filter(_ != statusCode).foreach { x =>
+      a[MeterNotFoundException] should be thrownBy meterCount(
+        registry,
+        Timer(s"client.${classifier}.response-time",
+              additionalTags and Tags.of("status-code", x))
+      )
+    }
+
+    allMethods.filter(_ != method).foreach { x =>
+      a[MeterNotFoundException] should be thrownBy meterCount(
+        registry,
+        Timer(s"client.${classifier}.response-time",
+              additionalTags and Tags.of("method", x))
+      )
+
+      a[MeterNotFoundException] should be thrownBy meterCount(
+        registry,
+        Timer(s"client.${classifier}.response-headers-time",
+              additionalTags and Tags.of("method", x))
+      )
+    }
+
+    allTerminations.filter(_ != termination).foreach { x =>
+      a[MeterNotFoundException] should be thrownBy meterCount(
+        registry,
+        Timer(s"client.${classifier}.response-time",
+              additionalTags and Tags.of("termination", x))
+      )
+    }
+
+    val responseTimeTags = if (termination != "normal") {
+      Tags.of("termination", termination)
+    } else {
+      Tags.of("status-code",
+              statusCode,
+              "method",
+              method,
+              "termination",
+              termination)
+    }
+
+    meterCount(
+      registry,
+      Timer(
+        s"client.${classifier}.response-time",
+        additionalTags and responseTimeTags
+      )
+    ) shouldBe 1
+
+    if (termination == "normal") {
+      meterMaxTime(
+        registry,
+        Timer(
+          s"client.${classifier}.response-time",
+          additionalTags and responseTimeTags
+        )
+      ) shouldBe 100.milliseconds
+
+      meterTotalTime(
+        registry,
+        Timer(
+          s"client.${classifier}.response-time",
+          additionalTags and responseTimeTags
+        )
+      ) shouldBe 100.milliseconds
+
+      meterCount(
+        registry,
+        Timer(
+          s"client.${classifier}.response-headers-time",
+          additionalTags and Tags.of("method", method)
+        )
+      ) shouldBe 1
+
+      meterMaxTime(
+        registry,
+        Timer(
+          s"client.${classifier}.response-headers-time",
+          additionalTags and Tags.of("method", method)
+        )
+      ) shouldBe 50.milliseconds
+
+      meterTotalTime(
+        registry,
+        Timer(
+          s"client.${classifier}.response-headers-time",
+          additionalTags and Tags.of("method", method)
+        )
+      ) shouldBe 50.milliseconds
+    }
+
+    meterValue(
+      registry,
+      Gauge(s"client.${classifier}.active-requests", additionalTags)
+    ) shouldBe 0
+  }
+
   behavior of "Http client with a micrometer metrics middleware"
 
   it should "register a 2xx response" in {
@@ -51,27 +185,7 @@ class MicrometerClientMetricsSpec
 
         resp.right.value shouldBe "200 OK"
 
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("client.default.3xx-responses"))
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("client.default.4xx-responses"))
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("client.default.5xx-responses"))
-
-        meterCount(registry, Timer("client.default.2xx-responses")) shouldBe 1
-        meterValue(registry, Gauge("client.default.active-requests")) shouldBe 0
-        meterCount(registry, Timer("client.default.requests.total")) shouldBe 1
-
-        meterMaxTime(registry, Timer("client.default.requests.total")) shouldBe 100.milliseconds
-        meterMaxTime(registry, Timer("client.default.requests.headers")) shouldBe 50.milliseconds
-        meterMaxTime(registry, Timer("client.default.2xx-responses")) shouldBe 100.milliseconds
-
-        meterTotalTime(registry, Timer("client.default.requests.total")) shouldBe 100.milliseconds
-        meterTotalTime(registry, Timer("client.default.requests.headers")) shouldBe 50.milliseconds
-        meterTotalTime(registry, Timer("client.default.2xx-responses")) shouldBe 100.milliseconds
+        testMetersFor(registry)
       }
     }.unsafeRunSync
   }
@@ -91,27 +205,7 @@ class MicrometerClientMetricsSpec
 
         resp.left.value shouldBe UnexpectedStatus(Status(400))
 
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("client.default.2xx-responses"))
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("client.default.3xx-responses"))
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("client.default.5xx-responses"))
-
-        meterCount(registry, Timer("client.default.4xx-responses")) shouldBe 1
-        meterValue(registry, Gauge("client.default.active-requests")) shouldBe 0
-        meterCount(registry, Timer("client.default.requests.total")) shouldBe 1
-
-        meterMaxTime(registry, Timer("client.default.requests.total")) shouldBe 100.milliseconds
-        meterMaxTime(registry, Timer("client.default.requests.headers")) shouldBe 50.milliseconds
-        meterMaxTime(registry, Timer("client.default.4xx-responses")) shouldBe 100.milliseconds
-
-        meterTotalTime(registry, Timer("client.default.requests.total")) shouldBe 100.milliseconds
-        meterTotalTime(registry, Timer("client.default.requests.headers")) shouldBe 50.milliseconds
-        meterTotalTime(registry, Timer("client.default.4xx-responses")) shouldBe 100.milliseconds
+        testMetersFor(registry, statusCode = "4xx")
       }
     }.unsafeRunSync
   }
@@ -133,27 +227,7 @@ class MicrometerClientMetricsSpec
 
         resp.left.value shouldBe UnexpectedStatus(Status(500))
 
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("client.default.2xx-responses"))
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("client.default.3xx-responses"))
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("client.default.4xx-responses"))
-
-        meterCount(registry, Timer("client.default.5xx-responses")) shouldBe 1
-        meterValue(registry, Gauge("client.default.active-requests")) shouldBe 0
-        meterCount(registry, Timer("client.default.requests.total")) shouldBe 1
-
-        meterMaxTime(registry, Timer("client.default.requests.total")) shouldBe 100.milliseconds
-        meterMaxTime(registry, Timer("client.default.requests.headers")) shouldBe 50.milliseconds
-        meterMaxTime(registry, Timer("client.default.5xx-responses")) shouldBe 100.milliseconds
-
-        meterTotalTime(registry, Timer("client.default.requests.total")) shouldBe 100.milliseconds
-        meterTotalTime(registry, Timer("client.default.requests.headers")) shouldBe 50.milliseconds
-        meterTotalTime(registry, Timer("client.default.5xx-responses")) shouldBe 100.milliseconds
+        testMetersFor(registry, statusCode = "5xx")
       }
     }.unsafeRunSync
   }
@@ -172,30 +246,7 @@ class MicrometerClientMetricsSpec
 
         resp.right.value shouldBe "200 OK"
 
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.post-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.put-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.patch-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.delete-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.head-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.move-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.options-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.trace-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.connect-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.other-requests"))
-
-        meterCount(registry, Timer("client.default.get-requests")) shouldBe 1
-        meterMaxTime(registry, Timer("client.default.get-requests")) shouldBe 100.milliseconds
-        meterTotalTime(registry, Timer("client.default.get-requests")) shouldBe 100.milliseconds
+        testMetersFor(registry, method = "get")
       }
     }.unsafeRunSync
   }
@@ -217,30 +268,7 @@ class MicrometerClientMetricsSpec
 
         resp.right.value shouldBe "200 OK"
 
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.get-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.put-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.patch-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.delete-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.head-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.move-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.options-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.trace-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.connect-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.other-requests"))
-
-        meterCount(registry, Timer("client.default.post-requests")) shouldBe 1
-        meterMaxTime(registry, Timer("client.default.post-requests")) shouldBe 100.milliseconds
-        meterTotalTime(registry, Timer("client.default.post-requests")) shouldBe 100.milliseconds
+        testMetersFor(registry, method = "post")
       }
     }.unsafeRunSync
   }
@@ -261,30 +289,7 @@ class MicrometerClientMetricsSpec
 
         resp.right.value shouldBe "200 OK"
 
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.get-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.post-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.patch-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.delete-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.head-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.move-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.options-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.trace-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.connect-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.other-requests"))
-
-        meterCount(registry, Timer("client.default.put-requests")) shouldBe 1
-        meterMaxTime(registry, Timer("client.default.put-requests")) shouldBe 100.milliseconds
-        meterTotalTime(registry, Timer("client.default.put-requests")) shouldBe 100.milliseconds
+        testMetersFor(registry, method = "put")
       }
     }.unsafeRunSync
   }
@@ -306,30 +311,7 @@ class MicrometerClientMetricsSpec
 
         resp.right.value shouldBe "200 OK"
 
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.get-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.post-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.put-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.delete-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.head-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.move-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.options-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.trace-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.connect-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.other-requests"))
-
-        meterCount(registry, Timer("client.default.patch-requests")) shouldBe 1
-        meterMaxTime(registry, Timer("client.default.patch-requests")) shouldBe 100.milliseconds
-        meterTotalTime(registry, Timer("client.default.patch-requests")) shouldBe 100.milliseconds
+        testMetersFor(registry, method = "patch")
       }
     }.unsafeRunSync
   }
@@ -351,30 +333,7 @@ class MicrometerClientMetricsSpec
 
         resp.right.value shouldBe "200 OK"
 
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.get-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.post-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.put-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.patch-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.head-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.move-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.options-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.trace-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.connect-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.other-requests"))
-
-        meterCount(registry, Timer("client.default.delete-requests")) shouldBe 1
-        meterMaxTime(registry, Timer("client.default.delete-requests")) shouldBe 100.milliseconds
-        meterTotalTime(registry, Timer("client.default.delete-requests")) shouldBe 100.milliseconds
+        testMetersFor(registry, method = "delete")
       }
     }.unsafeRunSync
   }
@@ -395,30 +354,7 @@ class MicrometerClientMetricsSpec
 
         resp.right.value shouldBe "200 OK"
 
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.get-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.post-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.put-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.patch-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.delete-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.move-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.options-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.trace-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.connect-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.other-requests"))
-
-        meterCount(registry, Timer("client.default.head-requests")) shouldBe 1
-        meterMaxTime(registry, Timer("client.default.head-requests")) shouldBe 100.milliseconds
-        meterTotalTime(registry, Timer("client.default.head-requests")) shouldBe 100.milliseconds
+        testMetersFor(registry, method = "head")
       }
     }.unsafeRunSync
   }
@@ -440,30 +376,7 @@ class MicrometerClientMetricsSpec
 
         resp.right.value shouldBe "200 OK"
 
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.get-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.post-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.put-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.patch-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.delete-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.move-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.head-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.trace-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.connect-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.other-requests"))
-
-        meterCount(registry, Timer("client.default.options-requests")) shouldBe 1
-        meterMaxTime(registry, Timer("client.default.options-requests")) shouldBe 100.milliseconds
-        meterTotalTime(registry, Timer("client.default.options-requests")) shouldBe 100.milliseconds
+        testMetersFor(registry, method = "options")
       }
     }.unsafeRunSync
   }
@@ -484,19 +397,7 @@ class MicrometerClientMetricsSpec
 
         resp.left.value shouldBe an[IOException]
 
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.abnormal-terminations"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.timeouts"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.get-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.requests.total"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.requests.headers"))
-
-        meterCount(registry, Timer("client.default.errors")) shouldBe 1
-        meterValue(registry, Gauge("client.default.active-requests")) shouldBe 0
+        testMetersFor(registry, termination = "error")
       }
     }.unsafeRunSync
   }
@@ -518,19 +419,7 @@ class MicrometerClientMetricsSpec
 
         resp.left.value shouldBe an[TimeoutException]
 
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.abnormal-terminations"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.get-requests"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.requests.total"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.requests.headers"))
-        a[MeterNotFoundException] should be thrownBy
-          meterCount(registry, Timer("client.default.errors"))
-
-        meterCount(registry, Timer("client.default.timeouts")) shouldBe 1
-        meterValue(registry, Gauge("client.default.active-requests")) shouldBe 0
+        testMetersFor(registry, termination = "timeout")
       }
     }.unsafeRunSync
   }
@@ -550,25 +439,7 @@ class MicrometerClientMetricsSpec
 
         resp.right.value shouldBe "200 OK"
 
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("client.default.get-requests"))
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("client.default.2xx-responses"))
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("client.default.3xx-responses"))
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("client.default.4xx-responses"))
-        a[MeterNotFoundException] should be thrownBy meterCount(
-          registry,
-          Timer("client.default.5xx-responses"))
-
-        meterCount(registry, Timer("client.classifier.get-requests")) shouldBe 1
-        meterMaxTime(registry, Timer("client.classifier.get-requests")) shouldBe 100.milliseconds
-        meterTotalTime(registry, Timer("client.classifier.get-requests")) shouldBe 100.milliseconds
+        testMetersFor(registry, classifier = "classifier")
       }
     }.unsafeRunSync
   }
@@ -593,29 +464,21 @@ class MicrometerClientMetricsSpec
                 .unsafeRunSync()
                 .right
                 .value shouldBe "200 OK"
+
               meterValue(registry, Gauge("client.default.active-requests")) shouldBe 1
-              meterMaxTime(registry, Timer("client.default.requests.headers")) shouldBe 50.milliseconds
+              meterMaxTime(
+                registry,
+                Timer("client.default.response-headers-time")) shouldBe 50.milliseconds
 
               a[MeterNotFoundException] should be thrownBy meterCount(
                 registry,
-                Timer("client.default.2xx-responses")
-              )
-
-              a[MeterNotFoundException] should be thrownBy meterCount(
-                registry,
-                Timer("client.default.requests.total")
+                Timer(s"client.default.response-time")
               )
             }
           }
           .unsafeRunSync()
 
-        meterCount(registry, Timer("client.default.2xx-responses")) shouldBe 1
-        meterValue(registry, Gauge("client.default.active-requests")) shouldBe 0
-        meterCount(registry, Timer("client.default.requests.total")) shouldBe 1
-
-        meterMaxTime(registry, Timer("client.default.2xx-responses")) shouldBe 100.milliseconds
-        meterMaxTime(registry, Timer("client.default.requests.total")) shouldBe 100.milliseconds
-        meterMaxTime(registry, Timer("client.default.requests.headers")) shouldBe 50.milliseconds
+        testMetersFor(registry)
       }
     }.unsafeRunSync
   }
