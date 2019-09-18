@@ -1,13 +1,13 @@
-lazy val http4sVersion = "0.20.0-RC1"
+lazy val http4sVersion = "0.20.10"
 lazy val micrometerVersion = "1.1.4"
-lazy val catsEffectVersion = "1.2.0"
-lazy val scalaTestVersion = "3.0.7"
+lazy val catsEffectVersion = "1.4.0"
+lazy val scalaTestVersion = "3.0.8"
 
 lazy val `http4s-micrometer-metrics` = (project in file(".")).
   settings(
     inThisBuild(List(
       organization := "com.ovoenergy",
-      scalaVersion := "2.12.8"
+      scalaVersion := "2.12.10"
     )),
     name := "http4s-micrometer-metrics",
     organizationName := "OVO Energy",

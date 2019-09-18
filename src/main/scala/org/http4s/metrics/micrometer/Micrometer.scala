@@ -70,8 +70,7 @@ object Micrometer {
           .getOrElse(Tags.empty)
       }
 
-      private def activeRequestsGauge(
-          classifier: Option[String]): F[AtomicInteger] = {
+      private def activeRequestsGauge(classifier: Option[String]): F[AtomicInteger] = {
 
         val create = for {
           created <- new AtomicInteger(0).pure[F]
@@ -93,8 +92,7 @@ object Micrometer {
           activeRequestsGauges
             .get(classifier)
             .fold {
-              create.flatMap(x =>
-                F.delay(activeRequestsGauges.put(classifier, x)) *> x.pure[F])
+              create.flatMap(x => F.delay(activeRequestsGauges.put(classifier, x)) *> x.pure[F])
             }(_.pure[F])
         }
       }
@@ -110,22 +108,23 @@ object Micrometer {
           .void
       }
 
-      def recordHeadersTime(method: org.http4s.Method,
-                            elapsed: Long,
-                            classifier: Option[String]): F[Unit] = {
+      def recordHeadersTime(
+          method: org.http4s.Method,
+          elapsed: Long,
+          classifier: Option[String]): F[Unit] = {
 
         val methodTags = method match {
-          case Method.GET     => Tags.of("method", "get")
-          case Method.POST    => Tags.of("method", "post")
-          case Method.PUT     => Tags.of("method", "put")
-          case Method.PATCH   => Tags.of("method", "patch")
-          case Method.HEAD    => Tags.of("method", "head")
-          case Method.MOVE    => Tags.of("method", "move")
+          case Method.GET => Tags.of("method", "get")
+          case Method.POST => Tags.of("method", "post")
+          case Method.PUT => Tags.of("method", "put")
+          case Method.PATCH => Tags.of("method", "patch")
+          case Method.HEAD => Tags.of("method", "head")
+          case Method.MOVE => Tags.of("method", "move")
           case Method.OPTIONS => Tags.of("method", "options")
-          case Method.TRACE   => Tags.of("method", "trace")
+          case Method.TRACE => Tags.of("method", "trace")
           case Method.CONNECT => Tags.of("method", "connect")
-          case Method.DELETE  => Tags.of("method", "delete")
-          case _              => Tags.of("method", "other")
+          case Method.DELETE => Tags.of("method", "delete")
+          case _ => Tags.of("method", "other")
         }
 
         val allTags = tags(classifier)
@@ -141,25 +140,26 @@ object Micrometer {
           }
       }
 
-      def recordTotalTime(method: org.http4s.Method,
-                          status: org.http4s.Status,
-                          elapsed: Long,
-                          classifier: Option[String]): F[Unit] = {
+      def recordTotalTime(
+          method: org.http4s.Method,
+          status: org.http4s.Status,
+          elapsed: Long,
+          classifier: Option[String]): F[Unit] = {
 
         val terminationTags = Tags.of("termination", "normal")
 
         val methodTags = method match {
-          case Method.GET     => Tags.of("method", "get")
-          case Method.POST    => Tags.of("method", "post")
-          case Method.PUT     => Tags.of("method", "put")
-          case Method.PATCH   => Tags.of("method", "patch")
-          case Method.HEAD    => Tags.of("method", "head")
-          case Method.MOVE    => Tags.of("method", "move")
+          case Method.GET => Tags.of("method", "get")
+          case Method.POST => Tags.of("method", "post")
+          case Method.PUT => Tags.of("method", "put")
+          case Method.PATCH => Tags.of("method", "patch")
+          case Method.HEAD => Tags.of("method", "head")
+          case Method.MOVE => Tags.of("method", "move")
           case Method.OPTIONS => Tags.of("method", "options")
-          case Method.TRACE   => Tags.of("method", "trace")
+          case Method.TRACE => Tags.of("method", "trace")
           case Method.CONNECT => Tags.of("method", "connect")
-          case Method.DELETE  => Tags.of("method", "delete")
-          case _              => Tags.of("method", "other")
+          case Method.DELETE => Tags.of("method", "delete")
+          case _ => Tags.of("method", "other")
         }
 
         val statusCodeTags = status.code match {
@@ -190,22 +190,21 @@ object Micrometer {
 
         val allTags = terminationType match {
           case Abnormal => Tags.of("termination", "abnormal")
-          case Error    => Tags.of("termination", "error")
-          case Timeout  => Tags.of("termination", "timeout")
+          case Error => Tags.of("termination", "error")
+          case Timeout => Tags.of("termination", "timeout")
         }
 
         recordResponseTime(classifier, allTags, elapsed)
       }
 
-      private def recordResponseTime(classifier: Option[String],
-                                     tags: Tags,
-                                     elapsed: Long) = F.delay(
-        Timer
-          .builder(s"${namespace(classifier)}.response-time")
-          .tags(tags)
-          .register(registry)
-          .record(elapsed, TimeUnit.NANOSECONDS)
-      )
+      private def recordResponseTime(classifier: Option[String], tags: Tags, elapsed: Long) =
+        F.delay(
+          Timer
+            .builder(s"${namespace(classifier)}.response-time")
+            .tags(tags)
+            .register(registry)
+            .record(elapsed, TimeUnit.NANOSECONDS)
+        )
     }
   }
 }
