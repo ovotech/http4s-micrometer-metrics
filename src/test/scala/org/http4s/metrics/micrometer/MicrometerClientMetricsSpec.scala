@@ -6,18 +6,15 @@ import java.util.concurrent.TimeoutException
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
-import cats.implicits._
 import cats.effect.{Timer => CatsEffectTimer, _}
 
 import org.http4s._
-import org.http4s.implicits._
 import org.http4s.Uri.uri
 import org.http4s.dsl.io._
 import org.http4s.client._
 import org.http4s.client.middleware.Metrics
 
-import io.micrometer.core.instrument.{MeterRegistry, Tag, Tags}
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry
+import io.micrometer.core.instrument.{MeterRegistry, Tags}
 import io.micrometer.core.instrument.search.MeterNotFoundException
 
 import org.scalatest._
@@ -446,7 +443,7 @@ class MicrometerClientMetricsSpec extends FlatSpec with Matchers with EitherValu
           Metrics[IO](micrometer)(client)
         }.unsafeRunSync
 
-        val clientRunResource = meteredClient
+        meteredClient
           .run(Request[IO](uri = Uri.unsafeFromString("ok")))
           .use { resp =>
             IO {

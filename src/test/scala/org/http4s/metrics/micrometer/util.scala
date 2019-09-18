@@ -3,7 +3,6 @@ package org.http4s.metrics.micrometer
 import java.io.IOException
 import java.util.concurrent.{TimeUnit, TimeoutException}
 
-import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 
 import cats.effect._
@@ -13,7 +12,7 @@ import org.http4s.{Request, Response}
 import org.http4s.dsl.io._
 import org.http4s.Method.GET
 
-import io.micrometer.core.instrument.{MeterRegistry, Gauge, Timer, Tag, Tags}
+import io.micrometer.core.instrument.{MeterRegistry, Tags}
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 
 object util {
