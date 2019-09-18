@@ -24,10 +24,7 @@ import org.scalatest._
 
 import util._
 
-class MicrometerClientMetricsSpec
-    extends FlatSpec
-    with Matchers
-    with EitherValues {
+class MicrometerClientMetricsSpec extends FlatSpec with Matchers with EitherValues {
 
   implicit val ec: ExecutionContext = ExecutionContext.global
   implicit val cf: ContextShift[IO] = IO.contextShift(ec)
@@ -35,12 +32,13 @@ class MicrometerClientMetricsSpec
 
   val client = Client.fromHttpApp[IO](HttpApp[IO](stub))
 
-  def testMetersFor(registry: MeterRegistry,
-                    method: String = "get",
-                    statusCode: String = "2xx",
-                    classifier: String = "default",
-                    termination: String = "normal",
-                    additionalTags: Tags = Tags.empty,
+  def testMetersFor(
+      registry: MeterRegistry,
+      method: String = "get",
+      statusCode: String = "2xx",
+      classifier: String = "default",
+      termination: String = "normal",
+      additionalTags: Tags = Tags.empty,
   ) = {
 
     // TODO test for non existence of classifier
@@ -75,42 +73,35 @@ class MicrometerClientMetricsSpec
     allStatuses.filter(_ != statusCode).foreach { x =>
       a[MeterNotFoundException] should be thrownBy meterCount(
         registry,
-        Timer(s"client.${classifier}.response-time",
-              additionalTags and Tags.of("status-code", x))
+        Timer(s"client.${classifier}.response-time", additionalTags and Tags.of("status-code", x))
       )
     }
 
     allMethods.filter(_ != method).foreach { x =>
       a[MeterNotFoundException] should be thrownBy meterCount(
         registry,
-        Timer(s"client.${classifier}.response-time",
-              additionalTags and Tags.of("method", x))
+        Timer(s"client.${classifier}.response-time", additionalTags and Tags.of("method", x))
       )
 
       a[MeterNotFoundException] should be thrownBy meterCount(
         registry,
-        Timer(s"client.${classifier}.response-headers-time",
-              additionalTags and Tags.of("method", x))
+        Timer(
+          s"client.${classifier}.response-headers-time",
+          additionalTags and Tags.of("method", x))
       )
     }
 
     allTerminations.filter(_ != termination).foreach { x =>
       a[MeterNotFoundException] should be thrownBy meterCount(
         registry,
-        Timer(s"client.${classifier}.response-time",
-              additionalTags and Tags.of("termination", x))
+        Timer(s"client.${classifier}.response-time", additionalTags and Tags.of("termination", x))
       )
     }
 
     val responseTimeTags = if (termination != "normal") {
       Tags.of("termination", termination)
     } else {
-      Tags.of("status-code",
-              statusCode,
-              "method",
-              method,
-              "termination",
-              termination)
+      Tags.of("status-code", statusCode, "method", method, "termination", termination)
     }
 
     meterCount(
@@ -466,9 +457,7 @@ class MicrometerClientMetricsSpec
                 .value shouldBe "200 OK"
 
               meterValue(registry, Gauge("client.default.active-requests")) shouldBe 1
-              meterMaxTime(
-                registry,
-                Timer("client.default.response-headers-time")) shouldBe 50.milliseconds
+              meterMaxTime(registry, Timer("client.default.response-headers-time")) shouldBe 50.milliseconds
 
               a[MeterNotFoundException] should be thrownBy meterCount(
                 registry,

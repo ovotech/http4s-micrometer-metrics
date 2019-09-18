@@ -28,12 +28,13 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
 
   val stubRoutes = HttpRoutes.of[IO](stub)
 
-  def testMetersFor(registry: MeterRegistry,
-                    method: String = "get",
-                    statusCode: String = "2xx",
-                    classifier: String = "default",
-                    termination: String = "normal",
-                    additionalTags: Tags = Tags.empty,
+  def testMetersFor(
+      registry: MeterRegistry,
+      method: String = "get",
+      statusCode: String = "2xx",
+      classifier: String = "default",
+      termination: String = "normal",
+      additionalTags: Tags = Tags.empty,
   ) = {
 
     // TODO test for non existence of classifier
@@ -68,42 +69,35 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
     allStatuses.filter(_ != statusCode).foreach { x =>
       a[MeterNotFoundException] should be thrownBy meterCount(
         registry,
-        Timer(s"server.${classifier}.response-time",
-              additionalTags and Tags.of("status-code", x))
+        Timer(s"server.${classifier}.response-time", additionalTags and Tags.of("status-code", x))
       )
     }
 
     allMethods.filter(_ != method).foreach { x =>
       a[MeterNotFoundException] should be thrownBy meterCount(
         registry,
-        Timer(s"server.${classifier}.response-time",
-              additionalTags and Tags.of("method", x))
+        Timer(s"server.${classifier}.response-time", additionalTags and Tags.of("method", x))
       )
 
       a[MeterNotFoundException] should be thrownBy meterCount(
         registry,
-        Timer(s"server.${classifier}.response-headers-time",
-              additionalTags and Tags.of("method", x))
+        Timer(
+          s"server.${classifier}.response-headers-time",
+          additionalTags and Tags.of("method", x))
       )
     }
 
     allTerminations.filter(_ != termination).foreach { x =>
       a[MeterNotFoundException] should be thrownBy meterCount(
         registry,
-        Timer(s"server.${classifier}.response-time",
-              additionalTags and Tags.of("termination", x))
+        Timer(s"server.${classifier}.response-time", additionalTags and Tags.of("termination", x))
       )
     }
 
     val responseTimeTags = if (termination != "normal") {
       Tags.of("termination", termination)
     } else {
-      Tags.of("status-code",
-              statusCode,
-              "method",
-              method,
-              "termination",
-              termination)
+      Tags.of("status-code", statusCode, "method", method, "termination", termination)
     }
 
     meterCount(
@@ -392,8 +386,7 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
         val resp = meteredRoutes.orNotFound(req).unsafeRunSync
 
         resp.status shouldBe Status.Ok
-        resp.body.attempt.compile.lastOrError.unsafeRunSync shouldBe a[Left[_,
-                                                                            _]]
+        resp.body.attempt.compile.lastOrError.unsafeRunSync shouldBe a[Left[_, _]]
 
         testMetersFor(registry, termination = "abnormal")
       }
@@ -409,8 +402,7 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
     meterRegistryResource.use { registry =>
       IO {
         val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
-          Metrics[IO](ops = micrometer, classifierF = classifierFunc)(
-            stubRoutes)
+          Metrics[IO](ops = micrometer, classifierF = classifierFunc)(stubRoutes)
         }.unsafeRunSync
 
         val req = Request[IO](uri = uri("/ok"))
