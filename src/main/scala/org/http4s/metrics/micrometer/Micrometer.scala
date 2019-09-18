@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import scala.collection.immutable
 import scala.collection.mutable
 import scala.collection.JavaConverters._
+import scala.concurrent.duration._
 
 import cats.Parallel
 import cats.implicits._
@@ -17,6 +18,8 @@ import org.http4s.metrics.TerminationType
 import org.http4s.metrics.TerminationType.{Abnormal, Error, Timeout}
 
 import io.micrometer.core.instrument.{MeterRegistry, Gauge, Timer, Tag, Tags}
+import com.ovotech.micrometer.Reporter
+import org.http4s.Status.ResponseClass
 
 case class Config(
     prefix: String,
@@ -33,12 +36,127 @@ object Micrometer {
   class PartiallyAppliedApply[F[_]] {
     def apply[G[_]](registry: MeterRegistry, config: Config)(
         implicit F: Concurrent[F],
-        Par: Parallel[F, G]): F[MetricsOps[F]] = create(registry, config)
+        Par: Parallel[F, G]
+    ): F[MetricsOps[F]] = create(registry, config)
   }
 
-  def create[F[_], G[_]](registry: MeterRegistry, config: Config)(
-      implicit F: Concurrent[F],
-      Par: Parallel[F, G]): F[MetricsOps[F]] = Semaphore[F](1).map { sem =>
+  def create[F[_]](
+      registry: MeterRegistry,
+      config: Config
+  )(implicit F: Concurrent[F]): F[MetricsOps[F]] =
+    Reporter.fromRegistry[F](registry, config.prefix, config.tags).map { reporter =>
+      new MetricsOps[F] {
+
+        private def namespace(classifier: Option[String]): String = {
+          classifier
+            .map(_.takeWhile(_ != '[').trim)
+            .filter(_.nonEmpty)
+            .getOrElse("default")
+        }
+
+        private def name(classifier: Option[String], key: String): String =
+          s"${namespace(classifier)}.$key"
+
+        private def tags(classifier: Option[String]): Tags = {
+          config.tags and classifier
+            .collect {
+              case TagsReg(tagsString) if tagsString.trim.nonEmpty =>
+                tagsString
+                  .split(",")
+                  .collect {
+                    case TagReg(key, value) =>
+                      Tags.of(key, value)
+                  }
+                  .reduce(_ and _)
+            }
+            .getOrElse(Tags.empty)
+
+        }
+
+        def increaseActiveRequests(classifier: Option[String]): F[Unit] =
+          reporter.gauge(name(classifier, "active-requests"), tags(classifier)).flatMap(_.increment)
+
+        def decreaseActiveRequests(classifier: Option[String]): F[Unit] =
+          reporter.gauge(name(classifier, "active-requests"), tags(classifier)).flatMap(_.decrement)
+
+        def recordHeadersTime(
+            method: Method,
+            elapsed: Long,
+            classifier: Option[String]
+        ): F[Unit] =
+          reporter
+            .timer(
+              name(classifier, "response-headers-time"),
+              tags(classifier) and methodTags(method)
+            )
+            .flatMap(_.record(elapsed.nanos))
+
+        def recordAbnormalTermination(
+            elapsed: Long,
+            terminationType: TerminationType,
+            classifier: Option[String]
+        ): F[Unit] = {
+          val terminationTags = terminationType match {
+            case Abnormal => Tags.of("termination", "abnormal")
+            case Error => Tags.of("termination", "error")
+            case Timeout => Tags.of("termination", "timeout")
+          }
+
+          recordResponseTime(
+            classifier,
+            tags(classifier) and terminationTags,
+            elapsed
+          )
+        }
+        def recordTotalTime(
+            method: Method,
+            status: Status,
+            elapsed: Long,
+            classifier: Option[String]
+        ): F[Unit] = {
+          val statusTags = status.responseClass match {
+            case Status.Informational =>
+              Tags.of("status-code", "1xx")
+            case Status.Successful =>
+              Tags.of("status-code", "2xx")
+            case Status.Redirection =>
+              Tags.of("status-code", "3xx")
+            case Status.ClientError =>
+              Tags.of("status-code", "4xx")
+            case Status.ServerError =>
+              Tags.of("status-code", "5xx")
+          }
+          val allTags = tags(classifier) and
+            Tags.of("termination", "normal") and
+            statusTags and
+            methodTags(method)
+
+          recordResponseTime(
+            classifier,
+            allTags,
+            elapsed
+          )
+        }
+
+        private def recordResponseTime(
+            classifier: Option[String],
+            tags: Tags,
+            elapsed: Long
+        ): F[Unit] =
+          reporter
+            .timer(name(classifier, "response-time"), tags)
+            .flatMap(_.record(elapsed.nanos))
+
+        private def methodTags(method: Method): Tags =
+          Tags.of("method", method.name.toLowerCase)
+
+      }
+    }
+
+  def createPar[F[_], G[_]](
+      registry: MeterRegistry,
+      config: Config
+  )(implicit F: Concurrent[F], Par: Parallel[F, G]): F[MetricsOps[F]] = Semaphore[F](1).map { sem =>
     val activeRequestsGauges: mutable.Map[Option[String], AtomicInteger] =
       mutable.Map.empty
 
@@ -111,7 +229,8 @@ object Micrometer {
       def recordHeadersTime(
           method: org.http4s.Method,
           elapsed: Long,
-          classifier: Option[String]): F[Unit] = {
+          classifier: Option[String]
+      ): F[Unit] = {
 
         val methodTags = method match {
           case Method.GET => Tags.of("method", "get")
@@ -134,7 +253,8 @@ object Micrometer {
             Timer
               .builder(s"${namespace(classifier)}.response-headers-time")
               .tags(allTags)
-              .register(registry))
+              .register(registry)
+          )
           .flatMap { timer =>
             F.delay(timer.record(elapsed, TimeUnit.NANOSECONDS))
           }
@@ -144,7 +264,8 @@ object Micrometer {
           method: org.http4s.Method,
           status: org.http4s.Status,
           elapsed: Long,
-          classifier: Option[String]): F[Unit] = {
+          classifier: Option[String]
+      ): F[Unit] = {
 
         val terminationTags = Tags.of("termination", "normal")
 
@@ -186,7 +307,8 @@ object Micrometer {
       def recordAbnormalTermination(
           elapsed: Long,
           terminationType: org.http4s.metrics.TerminationType,
-          classifier: Option[String]): F[Unit] = {
+          classifier: Option[String]
+      ): F[Unit] = {
 
         val allTags = terminationType match {
           case Abnormal => Tags.of("termination", "abnormal")

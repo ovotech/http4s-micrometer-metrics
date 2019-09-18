@@ -31,7 +31,8 @@ object util {
       IO.raiseError[Response[IO]](new TimeoutException("request timed out"))
     case _ -> Root / "abnormal-termination" =>
       Ok("200 OK").map(
-        _.withBodyStream(Stream.raiseError[IO](new RuntimeException("Abnormal termination"))))
+        _.withBodyStream(Stream.raiseError[IO](new RuntimeException("Abnormal termination")))
+      )
     case _ =>
       NotFound("404 Not Found")
   }
@@ -53,7 +54,8 @@ object util {
         .timer()
         .totalTime(TimeUnit.NANOSECONDS)
         .toLong,
-      TimeUnit.NANOSECONDS)
+      TimeUnit.NANOSECONDS
+    )
 
   def meterMeanTime(registry: MeterRegistry, meter: Timer): FiniteDuration =
     FiniteDuration(
@@ -63,7 +65,8 @@ object util {
         .timer()
         .mean(TimeUnit.NANOSECONDS)
         .toLong,
-      TimeUnit.NANOSECONDS)
+      TimeUnit.NANOSECONDS
+    )
 
   def meterMaxTime(registry: MeterRegistry, meter: Timer): FiniteDuration =
     FiniteDuration(
@@ -73,7 +76,8 @@ object util {
         .timer()
         .max(TimeUnit.NANOSECONDS)
         .toLong,
-      TimeUnit.NANOSECONDS)
+      TimeUnit.NANOSECONDS
+    )
 
   case class Gauge(name: String, tags: Tags = Tags.empty)
   case class Counter(name: String, tags: Tags = Tags.empty)
