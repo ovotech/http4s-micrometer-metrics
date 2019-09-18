@@ -34,7 +34,7 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
       statusCode: String = "2xx",
       classifier: String = "default",
       termination: String = "normal",
-      additionalTags: Tags = Tags.empty,
+      additionalTags: Tags = Tags.empty
   ) = {
 
     // TODO test for non existence of classifier
@@ -83,7 +83,8 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
         registry,
         Timer(
           s"server.${classifier}.response-headers-time",
-          additionalTags and Tags.of("method", x))
+          additionalTags and Tags.of("method", x)
+        )
       )
     }
 
