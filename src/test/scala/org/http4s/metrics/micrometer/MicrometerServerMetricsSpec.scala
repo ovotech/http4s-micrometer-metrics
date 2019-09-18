@@ -3,7 +3,6 @@ package org.http4s.metrics.micrometer
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
-import cats.implicits._
 import cats.effect.{Timer => CatsEffectTimer, _}
 
 import org.http4s._
@@ -12,7 +11,7 @@ import org.http4s.Uri.uri
 import org.http4s.dsl.io._
 import org.http4s.server.middleware.Metrics
 
-import io.micrometer.core.instrument.{MeterRegistry, Tag, Tags}
+import io.micrometer.core.instrument.{MeterRegistry, Tags}
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.micrometer.core.instrument.search.MeterNotFoundException
 

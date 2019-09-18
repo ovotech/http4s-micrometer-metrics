@@ -105,7 +105,7 @@ object Reporter {
       val pname = s"${metricPrefix}${name}"
       val create = for {
         created <- F.delay(new AtomicInteger(0))
-        gauge <- F.delay(
+        _ <- F.delay(
           micrometer.Gauge
             .builder(
               pname,
