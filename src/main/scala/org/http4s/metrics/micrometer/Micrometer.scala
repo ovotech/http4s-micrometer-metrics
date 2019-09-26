@@ -36,11 +36,11 @@ object Micrometer {
   )(implicit F: Concurrent[F]): F[MetricsOps[F]] =
     Reporter
       .fromRegistry[F](registry, config.prefix, config.tags)
-      .map(fromReporter(_, config))
+      .map(fromReporter(_))
 
   def fromReporter[F[_]: FlatMap](
       reporter: Reporter[F],
-      config: Config
+      extraTags: Tags = Tags.empty
   ): MetricsOps[F] =
     new MetricsOps[F] {
 
@@ -55,7 +55,7 @@ object Micrometer {
         s"${namespace(classifier)}.$key"
 
       private def tags(classifier: Option[String]): Tags = {
-        config.tags and classifier
+        extraTags and classifier
           .collect {
             case TagsReg(tagsString) if tagsString.trim.nonEmpty =>
               tagsString

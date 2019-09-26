@@ -29,6 +29,8 @@ trait Reporter[F[_]] {
   def gauge(name: String, tags: Tags): F[Gauge[F]]
   def gauge(name: String, tags: Map[String, String]): F[Gauge[F]] =
     gauge(name, tags.toTags)
+
+  def withExtraTags(extraTags: Tags): Reporter[F]
 }
 
 object Reporter {
@@ -89,12 +91,22 @@ object Reporter {
       implicit F: Sync[F]
   ) extends Reporter[F] {
     // local tags overwrite global tags
-    def effectiveTags(tags: Tags) = globalTags and tags
+    private[this] def effectiveTags(tags: Tags) = globalTags and tags
+
+    private[this] val effectivePrefix: String = {
+      val trimmed = metricPrefix.trim
+      if (trimmed.isEmpty) ""
+      else if (trimmed.endsWith(".")) metricPrefix
+      else trimmed + "."
+    }
+
+    private[this] def metricName(base: String): String =
+      effectivePrefix + base
 
     def counter(name: String, tags: Tags): F[Counter[F]] =
       F.delay {
           micrometer.Counter
-            .builder(s"${metricPrefix}${name}")
+            .builder(metricName(name))
             .tags(effectiveTags(tags))
             .register(mx)
         }
@@ -108,7 +120,7 @@ object Reporter {
     def timer(name: String, tags: Tags): F[Timer[F]] =
       F.delay {
           micrometer.Timer
-            .builder(s"${metricPrefix}${name}")
+            .builder(metricName(name))
             .tags(effectiveTags(tags))
             .register(mx)
         }
@@ -119,7 +131,7 @@ object Reporter {
         }
 
     def gauge(name: String, tags: Tags): F[Gauge[F]] = {
-      val pname = s"${metricPrefix}${name}"
+      val pname = metricName(name)
       val allTags = effectiveTags(tags)
 
       val create = for {
@@ -156,5 +168,8 @@ object Reporter {
           }
       }
     }
+
+    override def withExtraTags(extraTags: Tags): Reporter[F] =
+      new ReporterImpl[F](mx, metricPrefix, globalTags and extraTags, activeGauges, gaugeSem)
   }
 }
