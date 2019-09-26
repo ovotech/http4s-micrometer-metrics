@@ -11,6 +11,7 @@ import io.micrometer.core.instrument.{MeterRegistry, Tags}
 import io.micrometer.core.{instrument => micrometer}
 
 import scala.collection.mutable
+import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 
 trait Reporter[F[_]] {
@@ -62,11 +63,27 @@ object Reporter {
       sem <- Semaphore[F](1)
     } yield new ReporterImpl[F](mx, metricPrefix, globalTags, mutable.Map.empty, sem)
 
+  private class GaugeKey(private val name: String, tags: Tags) {
+    private val tagSet: Set[micrometer.Tag] = tags.iterator().asScala.toSet
+
+    override def equals(obj: Any): Boolean = obj match {
+      case other: GaugeKey =>
+        name == other.name &&
+          tagSet == other.tagSet
+      case _ => false
+    }
+
+    override def hashCode(): Int =
+      name.hashCode * 31 + tagSet.hashCode()
+
+    override def toString: String = s"GaugeKey($name, $tags)"
+  }
+
   private class ReporterImpl[F[_]](
       mx: MeterRegistry,
       metricPrefix: String,
       globalTags: Tags,
-      activeGauges: mutable.Map[String, AtomicInteger],
+      activeGauges: mutable.Map[GaugeKey, AtomicInteger],
       gaugeSem: Semaphore[F]
   )(
       implicit F: Sync[F]
@@ -103,6 +120,8 @@ object Reporter {
 
     def gauge(name: String, tags: Tags): F[Gauge[F]] = {
       val pname = s"${metricPrefix}${name}"
+      val allTags = effectiveTags(tags)
+
       val create = for {
         created <- F.delay(new AtomicInteger(0))
         _ <- F.delay(
@@ -113,17 +132,18 @@ object Reporter {
                 x.doubleValue
               }
             )
-            .tags(effectiveTags(tags))
+            .tags(allTags)
             .register(mx)
         )
 
       } yield created
 
       gaugeSem.withPermit {
+        val gaugeKey = new GaugeKey(pname, allTags)
         activeGauges
-          .get(pname)
+          .get(gaugeKey)
           .fold {
-            create.flatTap(x => F.delay(activeGauges.put(pname, x)))
+            create.flatTap(x => F.delay(activeGauges.put(gaugeKey, x)))
           }(_.pure[F])
           .map { g =>
             new Gauge[F] {

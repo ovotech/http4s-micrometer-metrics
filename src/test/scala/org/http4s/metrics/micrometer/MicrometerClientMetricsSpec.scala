@@ -433,6 +433,31 @@ class MicrometerClientMetricsSpec extends FlatSpec with Matchers with EitherValu
     }.unsafeRunSync
   }
 
+  it should "use tags provided by the request classifier" in {
+    implicit val clock = FakeClock[IO]
+    val config: Config = Config("client.")
+    meterRegistryResource.use { registry =>
+      IO {
+
+        val classifierFunc =
+          (r: Request[IO]) => Some(s"tagged[num:${r.uri.query.params.getOrElse("num", "")}]")
+
+        val meteredClient = Micrometer[IO](registry, config).map { micrometer =>
+          Metrics[IO](ops = micrometer, classifierF = classifierFunc)(client)
+        }.unsafeRunSync
+
+        val resp1 = meteredClient.expect[String]("ok?num=one").attempt.unsafeRunSync()
+        val resp2 = meteredClient.expect[String]("ok?num=two").attempt.unsafeRunSync()
+
+        resp1 shouldBe Right("200 OK")
+        resp2 shouldBe Right("200 OK")
+
+        testMetersFor(registry, classifier = "tagged", additionalTags = Tags.of("num", "one"))
+        testMetersFor(registry, classifier = "tagged", additionalTags = Tags.of("num", "two"))
+      }
+    }.unsafeRunSync
+  }
+
   it should "only record total time and decr active requests after client.run releases" in {
     implicit val clock = FakeClock[IO]
     val config: Config = Config("client.")
