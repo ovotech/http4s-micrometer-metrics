@@ -1,6 +1,6 @@
-lazy val http4sVersion = "0.20.10"
+lazy val http4sVersion = "0.21.0-M5"
 lazy val micrometerVersion = "1.1.4"
-lazy val catsEffectVersion = "1.4.0"
+lazy val catsEffectVersion = "2.0.0"
 lazy val scalaTestVersion = "3.0.8"
 
 lazy val `http4s-micrometer-metrics` = (project in file(".")).settings(
