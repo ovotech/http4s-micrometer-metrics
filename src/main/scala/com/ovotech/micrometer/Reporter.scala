@@ -4,7 +4,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import cats.effect.concurrent.Semaphore
 import cats.effect.implicits._
-import cats.effect.{Concurrent, Sync}
+import cats.effect.{Sync, Concurrent}
 import cats.implicits._
 import com.ovotech.micrometer.Reporter._
 import io.micrometer.core.instrument.{MeterRegistry, Tags}
@@ -63,7 +63,7 @@ object Reporter {
   ): F[Reporter[F]] =
     for {
       sem <- Semaphore[F](1)
-    } yield new ReporterImpl[F](mx, metricPrefix, globalTags, mutable.Map.empty, sem)
+    } yield new MeterRegistryReporter[F](mx, metricPrefix, globalTags, mutable.Map.empty, sem)
 
   private class GaugeKey(private val name: String, tags: Tags) {
     private val tagSet: Set[micrometer.Tag] = tags.iterator().asScala.toSet
@@ -81,7 +81,7 @@ object Reporter {
     override def toString: String = s"GaugeKey($name, $tags)"
   }
 
-  private class ReporterImpl[F[_]](
+  class MeterRegistryReporter[F[_]](
       mx: MeterRegistry,
       metricPrefix: String,
       globalTags: Tags,
@@ -170,6 +170,12 @@ object Reporter {
     }
 
     override def withExtraTags(extraTags: Tags): Reporter[F] =
-      new ReporterImpl[F](mx, metricPrefix, globalTags and extraTags, activeGauges, gaugeSem)
+      new MeterRegistryReporter[F](
+        mx,
+        metricPrefix,
+        globalTags and extraTags,
+        activeGauges,
+        gaugeSem
+      )
   }
 }
