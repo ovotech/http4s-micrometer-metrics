@@ -20,8 +20,10 @@ import io.micrometer.core.instrument.search.MeterNotFoundException
 import org.scalatest._
 
 import util._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class MicrometerClientMetricsSpec extends FlatSpec with Matchers with EitherValues {
+class MicrometerClientMetricsSpec extends AnyFlatSpec with Matchers with EitherValues {
 
   implicit val ec: ExecutionContext = ExecutionContext.global
   implicit val cf: ContextShift[IO] = IO.contextShift(ec)
