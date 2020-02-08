@@ -506,4 +506,50 @@ class MicrometerServerMetricsSpec extends FlatSpec with Matchers {
     )
   }
 
+  it should "handle classifier with no tags" in {
+    implicit val clock = FakeClock[IO]
+    val registry: MeterRegistry = new SimpleMeterRegistry
+    val config: Config =
+      Config("server.", tags = Tags.of("foo", "bar", "bar", "baz"))
+    val classifierFunc = (_: Request[IO]) => Some("classifier")
+    val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
+      Metrics[IO](ops = micrometer, classifierF = classifierFunc)(stubRoutes)
+    }.unsafeRunSync
+
+    val req = Request[IO](uri = uri("/ok"))
+    val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync
+
+    resp.status shouldBe Status.Ok
+    resp.as[String].unsafeRunSync shouldBe "200 OK"
+
+    testMetersFor(
+      registry,
+      classifier = "classifier",
+      additionalTags = Tags.of("foo", "bar", "bar", "baz")
+    )
+  }
+
+  it should "handle empty tags" in {
+    implicit val clock = FakeClock[IO]
+    val registry: MeterRegistry = new SimpleMeterRegistry
+    val config: Config =
+      Config("server.")
+    val classifierFunc = (_: Request[IO]) => Some("classifier[ ]")
+    val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
+      Metrics[IO](ops = micrometer, classifierF = classifierFunc)(stubRoutes)
+    }.unsafeRunSync
+
+    val req = Request[IO](uri = uri("/ok"))
+    val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync
+
+    resp.status shouldBe Status.Ok
+    resp.as[String].unsafeRunSync shouldBe "200 OK"
+
+    testMetersFor(
+      registry,
+      classifier = "classifier",
+      additionalTags = Tags.empty
+    )
+  }
+
 }

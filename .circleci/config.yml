@@ -1,34 +1,5 @@
 version: 2.1
 
-defaults:
-- &restore_cache
-  restore_cache:
-    keys:
-    - sbt-dependencies-{{ checksum "build.sbt" }}
-    - sbt-dependencies
-
-- &save_cache
-  save_cache:
-    key: sbt-dependencies-{{ checksum "build.sbt" }}
-    paths:
-    - /home/circleci/.sbt
-    - /home/circleci/.ivy2
-
-- &add_github_host_ssh_key
-  run:
-    name: Configure git credentials
-    command: |
-      echo 'Adding the github host SSH key...'
-      mkdir -p -m 0700 ~/.ssh/
-      ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
-      
-- &configure_git_credentials
-  run:
-    name: Configure git credentials
-    command: |
-      git config user.name ovo-comms-circleci
-      git config user.email "hello.comms@ovoenergy.com"
-
 executors:
   docker:
     docker:
@@ -48,33 +19,65 @@ executors:
       DEFAULT_AWS_REGION: "eu-west-1"
       AWS_REGION: "eu-west-1"
 
+commands:
+  generate_sbt_cache_key:
+    description: "Generate sbt cache key"
+    steps:
+      - run: md5 -q build.sbt >> .sbt_cache_key
+      - run: md5 -q project/build.properties >> .sbt_cache_key
+      - run: md5 -q project/plugin.sbt >> .sbt_cache_key
+
+  store_sbt_cache:
+    description: "Restore sbt cache"
+    steps:
+    - save_cache:
+        key: dependencies-{{ .Branch }}-{{ checksum ".sbt_cache_key" }}
+        paths:
+        - /home/circleci/.ivy2
+        - /home/circleci/.sbt
+
+  restore_sbt_cache:
+    description: "Restore sbt cache"
+    steps:
+    - restore_cache:
+        keys:
+        - dependencies-{{ .Branch }}-{{ checksum ".sbt_cache_key" }}
+        - dependencies-{{ .Branch }}
+        - dependencies
+
+  add_github_host_ssh_key:
+    description: "Add the github host SSH key"
+    steps:
+    - run:
+        name: Adding the github host SSH key
+        command: |
+          echo 'Adding the github host SSH key...'
+          mkdir -p -m 0700 ~/.ssh/
+          ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
+  configure_git_credentials:
+    description: "Configure git credentials"
+    steps:
+    - run:
+        name: Configure git credentials
+        command: |
+          git config user.name ovo-comms-circleci
+          git config user.email "hello.comms@ovoenergy.com"
+
+
 jobs:
   build:
 
     executor: docker
 
     steps:
-
     - checkout
-
-    - *restore_cache
-
-    - run:
-        command: sbt update
-        no_output_timeout: 20m
-
-    - *save_cache
-
-    - run:
-        command: sbt scalafmtCheck
-
-    - run:
-        command: sbt test:scalafmtCheck
-
-    - run:
-        command: sbt test:compile
-        no_output_timeout: 20m
-
+    - generate_sbt_cache_key
+    - restore_sbt_cache
+    - run: sbt update
+    - store_sbt_cache
+    - run: sbt scalafmtCheck
+    - run: sbt test:scalafmtCheck
+    - run: sbt test:compile
     - persist_to_workspace:
         root: .
         paths:
@@ -87,18 +90,11 @@ jobs:
     executor: docker
 
     steps:
-
     - checkout
-
-    - *restore_cache
-
     - attach_workspace:
         at: .
-
-    - run:
-        command: sbt test
-        no_output_timeout: 20m
-
+    - restore_sbt_cache
+    - run: sbt test
     - store_test_results:
         path: target/test-reports
 
@@ -108,19 +104,12 @@ jobs:
     executor: docker
 
     steps:
-
     - checkout
-
     - attach_workspace:
         at: .
-
-    - *add_github_host_ssh_key
-
-    - *configure_git_credentials
-
-    - run:
-        command: "build/tag.sh"
-
+    - add_github_host_ssh_key
+    - configure_git_credentials
+    - run: build/tag.sh
     # Update the workspace to make sure the git tags are available to the
     # downstream jobs
     - persist_to_workspace:
@@ -133,16 +122,12 @@ jobs:
     executor: docker
 
     steps:
-
     - checkout
-
-    - *restore_cache
-
     - attach_workspace:
         at: .
-
+    - restore_sbt_cache
     - run:
-        command: "sbt releaseEarly"
+        command: sbt releaseEarly
         no_output_timeout: 20m
 
 workflows:
