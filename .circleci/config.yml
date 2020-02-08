@@ -23,7 +23,7 @@ commands:
   generate_sbt_cache_key:
     description: "Generate sbt cache key"
     steps:
-      - run: md5 -q build.sbt >> .sbt_cache_key
+      - run: md5sum project/build.properties project/plugins.sbt build.sbt > .sbt_cache_key
       - run: md5 -q project/build.properties >> .sbt_cache_key
       - run: md5 -q project/plugin.sbt >> .sbt_cache_key
 
