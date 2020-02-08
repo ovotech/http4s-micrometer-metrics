@@ -28,6 +28,7 @@ commands:
   store_sbt_cache:
     description: "Restore sbt cache"
     steps:
+    - generate_sbt_cache_key
     - save_cache:
         key: dependencies-{{ checksum ".sbt_cache_key" }}
         paths:
@@ -37,6 +38,7 @@ commands:
   restore_sbt_cache:
     description: "Restore sbt cache"
     steps:
+    - generate_sbt_cache_key
     - restore_cache:
         keys:
         - dependencies-{{ checksum ".sbt_cache_key" }}
@@ -68,7 +70,6 @@ jobs:
 
     steps:
     - checkout
-    - generate_sbt_cache_key
     - restore_sbt_cache
     - run: sbt update
     - store_sbt_cache

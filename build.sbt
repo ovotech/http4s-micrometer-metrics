@@ -7,7 +7,8 @@ lazy val `http4s-micrometer-metrics` = (project in file(".")).settings(
   inThisBuild(
     List(
       organization := "com.ovoenergy",
-      scalaVersion := "2.12.10"
+      scalaVersion := "2.13.1",
+      crossScalaVersions += "2.12.10"
     )
   ),
   name := "http4s-micrometer-metrics",
