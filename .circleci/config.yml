@@ -31,7 +31,7 @@ commands:
     description: "Restore sbt cache"
     steps:
     - save_cache:
-        key: dependencies-{{ .Branch }}-{{ checksum ".sbt_cache_key" }}
+        key: dependencies-{{ checksum ".sbt_cache_key" }}
         paths:
         - /home/circleci/.ivy2
         - /home/circleci/.sbt
@@ -41,8 +41,7 @@ commands:
     steps:
     - restore_cache:
         keys:
-        - dependencies-{{ .Branch }}-{{ checksum ".sbt_cache_key" }}
-        - dependencies-{{ .Branch }}
+        - dependencies-{{ checksum ".sbt_cache_key" }}
         - dependencies
 
   add_github_host_ssh_key:
