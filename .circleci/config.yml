@@ -75,7 +75,7 @@ jobs:
     - store_sbt_cache
     - run: sbt scalafmtCheck
     - run: sbt test:scalafmtCheck
-    - run: sbt test:compile
+    - run: sbt +test:compile
     - persist_to_workspace:
         root: .
         paths:
@@ -92,7 +92,7 @@ jobs:
     - attach_workspace:
         at: .
     - restore_sbt_cache
-    - run: sbt test
+    - run: sbt +test
     - store_test_results:
         path: target/test-reports
 
@@ -125,7 +125,7 @@ jobs:
         at: .
     - restore_sbt_cache
     - run:
-        command: sbt releaseEarly
+        command: sbt +releaseEarly
         no_output_timeout: 20m
 
 workflows:

@@ -19,11 +19,9 @@ import io.micrometer.core.instrument.search.MeterNotFoundException
 
 import org.scalatest._
 
-import util._
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
+import org.http4s.metrics.micrometer.util._
 
-class MicrometerClientMetricsSpec extends AnyFlatSpec with Matchers with EitherValues {
+class MicrometerClientMetricsSpec extends UnitTest {
 
   implicit val ec: ExecutionContext = ExecutionContext.global
   implicit val cf: ContextShift[IO] = IO.contextShift(ec)
@@ -174,7 +172,7 @@ class MicrometerClientMetricsSpec extends AnyFlatSpec with Matchers with EitherV
 
         val resp = meteredClient.expect[String]("ok").attempt.unsafeRunSync()
 
-        resp.right.value shouldBe "200 OK"
+        resp.value shouldBe "200 OK"
 
         testMetersFor(registry)
       }
@@ -235,7 +233,7 @@ class MicrometerClientMetricsSpec extends AnyFlatSpec with Matchers with EitherV
 
         val resp = meteredClient.expect[String]("ok").attempt.unsafeRunSync()
 
-        resp.right.value shouldBe "200 OK"
+        resp.value shouldBe "200 OK"
 
         testMetersFor(registry, method = "get")
       }
@@ -257,7 +255,7 @@ class MicrometerClientMetricsSpec extends AnyFlatSpec with Matchers with EitherV
           .attempt
           .unsafeRunSync()
 
-        resp.right.value shouldBe "200 OK"
+        resp.value shouldBe "200 OK"
 
         testMetersFor(registry, method = "post")
       }
@@ -278,7 +276,7 @@ class MicrometerClientMetricsSpec extends AnyFlatSpec with Matchers with EitherV
           .attempt
           .unsafeRunSync()
 
-        resp.right.value shouldBe "200 OK"
+        resp.value shouldBe "200 OK"
 
         testMetersFor(registry, method = "put")
       }
@@ -300,7 +298,7 @@ class MicrometerClientMetricsSpec extends AnyFlatSpec with Matchers with EitherV
           .attempt
           .unsafeRunSync()
 
-        resp.right.value shouldBe "200 OK"
+        resp.value shouldBe "200 OK"
 
         testMetersFor(registry, method = "patch")
       }
@@ -322,7 +320,7 @@ class MicrometerClientMetricsSpec extends AnyFlatSpec with Matchers with EitherV
           .attempt
           .unsafeRunSync()
 
-        resp.right.value shouldBe "200 OK"
+        resp.value shouldBe "200 OK"
 
         testMetersFor(registry, method = "delete")
       }
@@ -343,7 +341,7 @@ class MicrometerClientMetricsSpec extends AnyFlatSpec with Matchers with EitherV
           .attempt
           .unsafeRunSync()
 
-        resp.right.value shouldBe "200 OK"
+        resp.value shouldBe "200 OK"
 
         testMetersFor(registry, method = "head")
       }
@@ -365,7 +363,7 @@ class MicrometerClientMetricsSpec extends AnyFlatSpec with Matchers with EitherV
           .attempt
           .unsafeRunSync()
 
-        resp.right.value shouldBe "200 OK"
+        resp.value shouldBe "200 OK"
 
         testMetersFor(registry, method = "options")
       }
@@ -428,7 +426,7 @@ class MicrometerClientMetricsSpec extends AnyFlatSpec with Matchers with EitherV
 
         val resp = meteredClient.expect[String]("ok").attempt.unsafeRunSync()
 
-        resp.right.value shouldBe "200 OK"
+        resp.value shouldBe "200 OK"
 
         testMetersFor(registry, classifier = "classifier")
       }
@@ -478,7 +476,6 @@ class MicrometerClientMetricsSpec extends AnyFlatSpec with Matchers with EitherV
                 .decode(resp, false)
                 .value
                 .unsafeRunSync()
-                .right
                 .value shouldBe "200 OK"
 
               meterValue(registry, Gauge("client.default.active-requests")) shouldBe 1
