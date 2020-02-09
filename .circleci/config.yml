@@ -3,7 +3,7 @@ version: 2.1
 executors:
   docker:
     docker:
-    - image: circleci/openjdk:8-jdk
+    - image: circleci/openjdk:11-jdk
     environment:
       JAVA_OPTS: "-Xmx1g -XX:MaxMetaspaceSize=1g -XX:MetaspaceSize=1g -XX:+CMSClassUnloadingEnabled"
       DEFAULT_AWS_REGION: "eu-west-1"
@@ -26,7 +26,7 @@ commands:
       - run: md5sum project/build.properties project/plugins.sbt build.sbt > .sbt_cache_key
 
   store_sbt_cache:
-    description: "Restore sbt cache"
+    description: "Store sbt cache"
     steps:
     - generate_sbt_cache_key
     - save_cache:
@@ -34,6 +34,7 @@ commands:
         paths:
         - /home/circleci/.ivy2
         - /home/circleci/.sbt
+        - /home/circleci/.cache
 
   restore_sbt_cache:
     description: "Restore sbt cache"
