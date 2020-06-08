@@ -52,6 +52,9 @@ object Reporter {
 
     /** Run `action` with the gauge incremented before execution and decremented after termination (including error or cancelation) */
     def surround[A](action: F[A]): F[A]
+
+    /** Sets the gauge's value to `n` */
+    def setValue(n: Int): F[Unit]
   }
 
   def fromRegistry[F[_]](
@@ -140,9 +143,7 @@ object Reporter {
           micrometer.Gauge
             .builder(
               pname,
-              created, { x: AtomicInteger =>
-                x.doubleValue
-              }
+              created, { x: AtomicInteger => x.doubleValue }
             )
             .tags(allTags)
             .register(mx)
@@ -164,6 +165,8 @@ object Reporter {
 
               def surround[A](action: F[A]): F[A] =
                 increment.bracket(_ => action)(_ => decrement)
+
+              def setValue(n: Int): F[Unit] = F.delay(g.set(n))
             }
           }
       }
