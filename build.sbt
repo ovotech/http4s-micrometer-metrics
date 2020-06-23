@@ -1,5 +1,5 @@
 lazy val http4sVersion = "0.21.0"
-lazy val micrometerVersion = "1.3.5"
+lazy val micrometerVersion = "1.3.10"
 lazy val catsEffectVersion = "2.1.1"
 lazy val scalaTestVersion = "3.1.1"
 
