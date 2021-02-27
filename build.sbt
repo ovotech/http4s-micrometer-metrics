@@ -8,7 +8,7 @@ lazy val `http4s-micrometer-metrics` = (project in file(".")).settings(
     List(
       organization := "com.ovoenergy",
       scalaVersion := "2.13.1",
-      crossScalaVersions += "2.12.10",
+      crossScalaVersions += "2.12.13",
       Compile /console / scalacOptions -= "-Ywarn-unused-import",
     )
   ),
