@@ -1,7 +1,33 @@
+import sbtrelease.ExtraReleaseCommands
+import sbtrelease.ReleaseStateTransformations._
+import sbtrelease.tagsonly.TagsOnly._
+
 lazy val http4sVersion = "0.21.7"
 lazy val micrometerVersion = "1.5.4"
 lazy val catsEffectVersion = "2.3.0"
 lazy val scalaTestVersion = "3.2.1"
+
+lazy val publicArtifactory = "Artifactory Realm" at "https://kaluza.jfrog.io/artifactory/maven"
+
+lazy val publishSettings = Seq(
+  publishTo := Some(publicArtifactory),
+  credentials += {
+    for {
+      usr <- sys.env.get("ARTIFACTORY_USER")
+      password <- sys.env.get("ARTIFACTORY_PASS")
+    } yield Credentials("Artifactory Realm", "kaluza.jfrog.io", usr, password)
+  }.getOrElse(Credentials(Path.userHome / ".ivy2" / ".credentials")),
+  releaseProcess := Seq[ReleaseStep](
+    checkSnapshotDependencies,
+    releaseStepCommand(ExtraReleaseCommands.initialVcsChecksCommand),
+    setVersionFromTags(releaseTagPrefix.value),
+    runClean,
+    tagRelease,
+    publishArtifacts,
+    pushTagsOnly
+  )
+)
+
 
 lazy val `http4s-micrometer-metrics` = (project in file(".")).settings(
   inThisBuild(
@@ -45,14 +71,4 @@ lazy val `http4s-micrometer-metrics` = (project in file(".")).settings(
     "org.http4s" %% "http4s-dsl" % http4sVersion % Test,
     "org.http4s" %% "http4s-client" % http4sVersion % Test
   ),
-  bintrayOrganization := Some("ovotech"),
-  bintrayRepository := "maven",
-  bintrayPackageLabels := Seq(
-    "http4s",
-    "metrics",
-    "micrometer"
-  ),
-  releaseEarlyWith := BintrayPublisher,
-  releaseEarlyNoGpg := true,
-  releaseEarlyEnableSyncToMaven := false
-)
+).settings(publishSettings)
