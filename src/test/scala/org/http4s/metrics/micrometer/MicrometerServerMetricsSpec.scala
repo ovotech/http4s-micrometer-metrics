@@ -15,8 +15,6 @@ import io.micrometer.core.instrument.{MeterRegistry, Tags}
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.micrometer.core.instrument.search.MeterNotFoundException
 
-import org.scalatest._
-
 import org.http4s.metrics.micrometer.util._
 
 class MicrometerServerMetricsSpec extends UnitTest {
@@ -161,236 +159,258 @@ class MicrometerServerMetricsSpec extends UnitTest {
   it should "register a 2xx response" in {
     implicit val clock = FakeClock[IO]
     val config: Config = Config("server.")
-    meterRegistryResource.use { registry =>
-      IO {
-        val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
-          Metrics[IO](micrometer)(stubRoutes)
-        }.unsafeRunSync
+    meterRegistryResource
+      .use { registry =>
+        IO {
+          val meteredRoutes = Micrometer[IO](registry, config)
+            .map { micrometer => Metrics[IO](micrometer)(stubRoutes) }
+            .unsafeRunSync()
 
-        val req = Request[IO](uri = uri("/ok"))
-        val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync
+          val req = Request[IO](uri = uri("/ok"))
+          val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync()
 
-        resp.status shouldBe Status.Ok
-        resp.as[String].unsafeRunSync shouldBe "200 OK"
+          resp.status shouldBe Status.Ok
+          resp.as[String].unsafeRunSync() shouldBe "200 OK"
 
-        testMetersFor(registry, "get", "2xx")
+          testMetersFor(registry, "get", "2xx")
+        }
       }
-    }.unsafeRunSync
+      .unsafeRunSync()
   }
 
   it should "register a 4xx response" in {
     implicit val clock = FakeClock[IO]
     val config: Config = Config("server.")
-    meterRegistryResource.use { registry =>
-      IO {
+    meterRegistryResource
+      .use { registry =>
+        IO {
 
-        val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
-          Metrics[IO](micrometer)(stubRoutes)
-        }.unsafeRunSync
+          val meteredRoutes = Micrometer[IO](registry, config)
+            .map { micrometer => Metrics[IO](micrometer)(stubRoutes) }
+            .unsafeRunSync()
 
-        val req = Request[IO](uri = uri("/bad-request"))
+          val req = Request[IO](uri = uri("/bad-request"))
 
-        val resp = meteredRoutes.orNotFound(req).unsafeRunSync
+          val resp = meteredRoutes.orNotFound(req).unsafeRunSync()
 
-        resp.status shouldBe Status.BadRequest
-        resp.as[String].unsafeRunSync shouldBe "400 Bad Request"
+          resp.status shouldBe Status.BadRequest
+          resp.as[String].unsafeRunSync() shouldBe "400 Bad Request"
 
-        testMetersFor(registry, "get", "4xx")
+          testMetersFor(registry, "get", "4xx")
+        }
       }
-    }.unsafeRunSync
+      .unsafeRunSync()
   }
 
   it should "register a 5xx response" in {
     implicit val clock = FakeClock[IO]
     val config: Config = Config("server.")
-    meterRegistryResource.use { registry =>
-      IO {
+    meterRegistryResource
+      .use { registry =>
+        IO {
 
-        val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
-          Metrics[IO](micrometer)(stubRoutes)
-        }.unsafeRunSync
+          val meteredRoutes = Micrometer[IO](registry, config)
+            .map { micrometer => Metrics[IO](micrometer)(stubRoutes) }
+            .unsafeRunSync()
 
-        val req = Request[IO](uri = uri("/internal-server-error"))
+          val req = Request[IO](uri = uri("/internal-server-error"))
 
-        val resp = meteredRoutes.orNotFound(req).unsafeRunSync
+          val resp = meteredRoutes.orNotFound(req).unsafeRunSync()
 
-        resp.status shouldBe Status.InternalServerError
-        resp.as[String].unsafeRunSync shouldBe "500 Internal Server Error"
+          resp.status shouldBe Status.InternalServerError
+          resp.as[String].unsafeRunSync() shouldBe "500 Internal Server Error"
 
-        testMetersFor(registry, "get", "5xx")
+          testMetersFor(registry, "get", "5xx")
+        }
       }
-    }.unsafeRunSync
+      .unsafeRunSync()
   }
 
   it should "register a POST request" in {
     implicit val clock = FakeClock[IO]
     val config: Config = Config("server.")
-    meterRegistryResource.use { registry =>
-      IO {
+    meterRegistryResource
+      .use { registry =>
+        IO {
 
-        val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
-          Metrics[IO](micrometer)(stubRoutes)
-        }.unsafeRunSync
+          val meteredRoutes = Micrometer[IO](registry, config)
+            .map { micrometer => Metrics[IO](micrometer)(stubRoutes) }
+            .unsafeRunSync()
 
-        val req = Request[IO](method = POST, uri = uri("/ok"))
+          val req = Request[IO](method = POST, uri = uri("/ok"))
 
-        val resp = meteredRoutes.orNotFound(req).unsafeRunSync
+          val resp = meteredRoutes.orNotFound(req).unsafeRunSync()
 
-        resp.status shouldBe Status.Ok
-        resp.as[String].unsafeRunSync shouldBe "200 OK"
+          resp.status shouldBe Status.Ok
+          resp.as[String].unsafeRunSync() shouldBe "200 OK"
 
-        testMetersFor(registry, "post")
+          testMetersFor(registry, "post")
+        }
       }
-    }.unsafeRunSync
+      .unsafeRunSync()
   }
 
   it should "register a PUT request" in {
     implicit val clock = FakeClock[IO]
     val config: Config = Config("server.")
-    meterRegistryResource.use { registry =>
-      IO {
-        val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
-          Metrics[IO](micrometer)(stubRoutes)
-        }.unsafeRunSync
+    meterRegistryResource
+      .use { registry =>
+        IO {
+          val meteredRoutes = Micrometer[IO](registry, config)
+            .map { micrometer => Metrics[IO](micrometer)(stubRoutes) }
+            .unsafeRunSync()
 
-        val req = Request[IO](method = PUT, uri = uri("/ok"))
+          val req = Request[IO](method = PUT, uri = uri("/ok"))
 
-        val resp = meteredRoutes.orNotFound(req).unsafeRunSync
+          val resp = meteredRoutes.orNotFound(req).unsafeRunSync()
 
-        resp.status shouldBe Status.Ok
-        resp.as[String].unsafeRunSync shouldBe "200 OK"
+          resp.status shouldBe Status.Ok
+          resp.as[String].unsafeRunSync() shouldBe "200 OK"
 
-        testMetersFor(registry, "put")
+          testMetersFor(registry, "put")
+        }
       }
-    }.unsafeRunSync
+      .unsafeRunSync()
   }
 
   it should "register a PATCH request" in {
     implicit val clock = FakeClock[IO]
     val config: Config = Config("server.")
-    meterRegistryResource.use { registry =>
-      IO {
-        val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
-          Metrics[IO](micrometer)(stubRoutes)
-        }.unsafeRunSync
+    meterRegistryResource
+      .use { registry =>
+        IO {
+          val meteredRoutes = Micrometer[IO](registry, config)
+            .map { micrometer => Metrics[IO](micrometer)(stubRoutes) }
+            .unsafeRunSync()
 
-        val req = Request[IO](method = PATCH, uri = uri("/ok"))
+          val req = Request[IO](method = PATCH, uri = uri("/ok"))
 
-        val resp = meteredRoutes.orNotFound(req).unsafeRunSync
+          val resp = meteredRoutes.orNotFound(req).unsafeRunSync()
 
-        resp.status shouldBe Status.Ok
-        resp.as[String].unsafeRunSync shouldBe "200 OK"
+          resp.status shouldBe Status.Ok
+          resp.as[String].unsafeRunSync() shouldBe "200 OK"
 
-        testMetersFor(registry, "patch")
+          testMetersFor(registry, "patch")
+        }
       }
-    }.unsafeRunSync
+      .unsafeRunSync()
   }
 
   it should "register a DELETE request" in {
     implicit val clock = FakeClock[IO]
     val config: Config = Config("server.")
-    meterRegistryResource.use { registry =>
-      IO {
-        val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
-          Metrics[IO](micrometer)(stubRoutes)
-        }.unsafeRunSync
+    meterRegistryResource
+      .use { registry =>
+        IO {
+          val meteredRoutes = Micrometer[IO](registry, config)
+            .map { micrometer => Metrics[IO](micrometer)(stubRoutes) }
+            .unsafeRunSync()
 
-        val req = Request[IO](method = DELETE, uri = uri("/ok"))
+          val req = Request[IO](method = DELETE, uri = uri("/ok"))
 
-        val resp = meteredRoutes.orNotFound(req).unsafeRunSync
+          val resp = meteredRoutes.orNotFound(req).unsafeRunSync()
 
-        resp.status shouldBe Status.Ok
-        resp.as[String].unsafeRunSync shouldBe "200 OK"
+          resp.status shouldBe Status.Ok
+          resp.as[String].unsafeRunSync() shouldBe "200 OK"
 
-        testMetersFor(registry, "delete")
+          testMetersFor(registry, "delete")
+        }
       }
-    }.unsafeRunSync
+      .unsafeRunSync()
   }
 
   it should "register a HEAD request" in {
     implicit val clock = FakeClock[IO]
 
     val config: Config = Config("server.")
-    meterRegistryResource.use { registry =>
-      IO {
-        val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
-          Metrics[IO](micrometer)(stubRoutes)
-        }.unsafeRunSync
+    meterRegistryResource
+      .use { registry =>
+        IO {
+          val meteredRoutes = Micrometer[IO](registry, config)
+            .map { micrometer => Metrics[IO](micrometer)(stubRoutes) }
+            .unsafeRunSync()
 
-        val req = Request[IO](method = HEAD, uri = uri("/ok"))
+          val req = Request[IO](method = HEAD, uri = uri("/ok"))
 
-        val resp = meteredRoutes.orNotFound(req).unsafeRunSync
+          val resp = meteredRoutes.orNotFound(req).unsafeRunSync()
 
-        resp.status shouldBe Status.Ok
-        resp.as[String].unsafeRunSync shouldBe "200 OK"
+          resp.status shouldBe Status.Ok
+          resp.as[String].unsafeRunSync() shouldBe "200 OK"
 
-        testMetersFor(registry, "head")
+          testMetersFor(registry, "head")
+        }
       }
-    }.unsafeRunSync
+      .unsafeRunSync()
   }
 
   it should "register a OPTIONS request" in {
     implicit val clock = FakeClock[IO]
     val config: Config = Config("server.")
-    meterRegistryResource.use { registry =>
-      IO {
-        val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
-          Metrics[IO](micrometer)(stubRoutes)
-        }.unsafeRunSync
+    meterRegistryResource
+      .use { registry =>
+        IO {
+          val meteredRoutes = Micrometer[IO](registry, config)
+            .map { micrometer => Metrics[IO](micrometer)(stubRoutes) }
+            .unsafeRunSync()
 
-        val req = Request[IO](method = OPTIONS, uri = uri("/ok"))
+          val req = Request[IO](method = OPTIONS, uri = uri("/ok"))
 
-        val resp = meteredRoutes.orNotFound(req).unsafeRunSync
+          val resp = meteredRoutes.orNotFound(req).unsafeRunSync()
 
-        resp.status shouldBe Status.Ok
-        resp.as[String].unsafeRunSync shouldBe "200 OK"
+          resp.status shouldBe Status.Ok
+          resp.as[String].unsafeRunSync() shouldBe "200 OK"
 
-        testMetersFor(registry, "options")
+          testMetersFor(registry, "options")
+        }
       }
-    }.unsafeRunSync
+      .unsafeRunSync()
   }
 
   it should "register an error" in {
     implicit val clock = FakeClock[IO]
     val config: Config = Config("server.")
-    meterRegistryResource.use { registry =>
-      IO {
+    meterRegistryResource
+      .use { registry =>
+        IO {
 
-        val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
-          Metrics[IO](micrometer)(stubRoutes)
-        }.unsafeRunSync
+          val meteredRoutes = Micrometer[IO](registry, config)
+            .map { micrometer => Metrics[IO](micrometer)(stubRoutes) }
+            .unsafeRunSync()
 
-        val req = Request[IO](method = GET, uri = uri("/error"))
+          val req = Request[IO](method = GET, uri = uri("/error"))
 
-        val resp = meteredRoutes.orNotFound(req).attempt.unsafeRunSync
+          val resp = meteredRoutes.orNotFound(req).attempt.unsafeRunSync()
 
-        resp shouldBe a[Left[_, _]]
+          resp shouldBe a[Left[_, _]]
 
-        testMetersFor(registry, statusCode = "5xx", termination = "error")
+          testMetersFor(registry, statusCode = "5xx", termination = "error")
+        }
       }
-    }.unsafeRunSync
+      .unsafeRunSync()
   }
 
   it should "register an abnormal termination" in {
     implicit val clock = FakeClock[IO]
     val config: Config = Config("server.")
-    meterRegistryResource.use { registry =>
-      IO {
+    meterRegistryResource
+      .use { registry =>
+        IO {
 
-        val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
-          Metrics[IO](micrometer)(stubRoutes)
-        }.unsafeRunSync
+          val meteredRoutes = Micrometer[IO](registry, config)
+            .map { micrometer => Metrics[IO](micrometer)(stubRoutes) }
+            .unsafeRunSync()
 
-        val req = Request[IO](method = GET, uri = uri("/abnormal-termination"))
+          val req = Request[IO](method = GET, uri = uri("/abnormal-termination"))
 
-        val resp = meteredRoutes.orNotFound(req).unsafeRunSync
+          val resp = meteredRoutes.orNotFound(req).unsafeRunSync()
 
-        resp.status shouldBe Status.Ok
-        resp.body.attempt.compile.lastOrError.unsafeRunSync shouldBe a[Left[_, _]]
+          resp.status shouldBe Status.Ok
+          resp.body.attempt.compile.lastOrError.unsafeRunSync() shouldBe a[Left[_, _]]
 
-        testMetersFor(registry, termination = "abnormal")
+          testMetersFor(registry, termination = "abnormal")
+        }
       }
-    }.unsafeRunSync
+      .unsafeRunSync()
   }
 
   // TODO how to simulate a timeout???
@@ -399,41 +419,47 @@ class MicrometerServerMetricsSpec extends UnitTest {
     implicit val clock = FakeClock[IO]
     val config: Config = Config("server.")
     val classifierFunc = (_: Request[IO]) => Some("classifier")
-    meterRegistryResource.use { registry =>
-      IO {
-        val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
-          Metrics[IO](ops = micrometer, classifierF = classifierFunc)(stubRoutes)
-        }.unsafeRunSync
+    meterRegistryResource
+      .use { registry =>
+        IO {
+          val meteredRoutes = Micrometer[IO](registry, config)
+            .map { micrometer =>
+              Metrics[IO](ops = micrometer, classifierF = classifierFunc)(stubRoutes)
+            }
+            .unsafeRunSync()
 
-        val req = Request[IO](uri = uri("/ok"))
-        val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync
+          val req = Request[IO](uri = uri("/ok"))
+          val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync()
 
-        resp.status shouldBe Status.Ok
-        resp.as[String].unsafeRunSync shouldBe "200 OK"
+          resp.status shouldBe Status.Ok
+          resp.as[String].unsafeRunSync() shouldBe "200 OK"
 
-        testMetersFor(registry, classifier = "classifier")
+          testMetersFor(registry, classifier = "classifier")
+        }
       }
-    }.unsafeRunSync
+      .unsafeRunSync()
   }
 
   it should "tags metrics using global tags" in {
     implicit val clock = FakeClock[IO]
     val config: Config = Config("server.", tags = Tags.of("foo", "bar"))
-    meterRegistryResource.use { registry =>
-      IO {
-        val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
-          Metrics[IO](micrometer)(stubRoutes)
-        }.unsafeRunSync
+    meterRegistryResource
+      .use { registry =>
+        IO {
+          val meteredRoutes = Micrometer[IO](registry, config)
+            .map { micrometer => Metrics[IO](micrometer)(stubRoutes) }
+            .unsafeRunSync()
 
-        val req = Request[IO](uri = uri("/ok"))
-        val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync
+          val req = Request[IO](uri = uri("/ok"))
+          val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync()
 
-        resp.status shouldBe Status.Ok
-        resp.as[String].unsafeRunSync shouldBe "200 OK"
+          resp.status shouldBe Status.Ok
+          resp.as[String].unsafeRunSync() shouldBe "200 OK"
 
-        testMetersFor(registry, additionalTags = Tags.of("foo", "bar"))
+          testMetersFor(registry, additionalTags = Tags.of("foo", "bar"))
+        }
       }
-    }.unsafeRunSync
+      .unsafeRunSync()
   }
 
   it should "use the provided request classifier to overwrite the tags" in {
@@ -443,15 +469,15 @@ class MicrometerServerMetricsSpec extends UnitTest {
       Config("server.", tags = Tags.of("foo", "bar", "bar", "baz"))
     val classifierFunc =
       (_: Request[IO]) => Some("classifier[bar:bazv2,baz:bar]")
-    val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
-      Metrics[IO](ops = micrometer, classifierF = classifierFunc)(stubRoutes)
-    }.unsafeRunSync
+    val meteredRoutes = Micrometer[IO](registry, config)
+      .map { micrometer => Metrics[IO](ops = micrometer, classifierF = classifierFunc)(stubRoutes) }
+      .unsafeRunSync()
 
     val req = Request[IO](uri = uri("/ok"))
-    val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync
+    val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync()
 
     resp.status shouldBe Status.Ok
-    resp.as[String].unsafeRunSync shouldBe "200 OK"
+    resp.as[String].unsafeRunSync() shouldBe "200 OK"
 
     testMetersFor(
       registry,
@@ -467,15 +493,15 @@ class MicrometerServerMetricsSpec extends UnitTest {
       Config("server.", tags = Tags.of("foo", "bar", "bar", "baz"))
     val classifierFunc =
       (_: Request[IO]) => Some("[bar:bazv2,baz:bar]")
-    val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
-      Metrics[IO](ops = micrometer, classifierF = classifierFunc)(stubRoutes)
-    }.unsafeRunSync
+    val meteredRoutes = Micrometer[IO](registry, config)
+      .map { micrometer => Metrics[IO](ops = micrometer, classifierF = classifierFunc)(stubRoutes) }
+      .unsafeRunSync()
 
     val req = Request[IO](uri = uri("/ok"))
-    val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync
+    val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync()
 
     resp.status shouldBe Status.Ok
-    resp.as[String].unsafeRunSync shouldBe "200 OK"
+    resp.as[String].unsafeRunSync() shouldBe "200 OK"
 
     testMetersFor(
       registry,
@@ -489,15 +515,15 @@ class MicrometerServerMetricsSpec extends UnitTest {
     val config: Config =
       Config("server.", tags = Tags.of("foo", "bar", "bar", "baz"))
     val classifierFunc = (_: Request[IO]) => Some("classifier[]")
-    val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
-      Metrics[IO](ops = micrometer, classifierF = classifierFunc)(stubRoutes)
-    }.unsafeRunSync
+    val meteredRoutes = Micrometer[IO](registry, config)
+      .map { micrometer => Metrics[IO](ops = micrometer, classifierF = classifierFunc)(stubRoutes) }
+      .unsafeRunSync()
 
     val req = Request[IO](uri = uri("/ok"))
-    val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync
+    val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync()
 
     resp.status shouldBe Status.Ok
-    resp.as[String].unsafeRunSync shouldBe "200 OK"
+    resp.as[String].unsafeRunSync() shouldBe "200 OK"
 
     testMetersFor(
       registry,
@@ -512,15 +538,15 @@ class MicrometerServerMetricsSpec extends UnitTest {
     val config: Config =
       Config("server.", tags = Tags.of("foo", "bar", "bar", "baz"))
     val classifierFunc = (_: Request[IO]) => Some("classifier")
-    val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
-      Metrics[IO](ops = micrometer, classifierF = classifierFunc)(stubRoutes)
-    }.unsafeRunSync
+    val meteredRoutes = Micrometer[IO](registry, config)
+      .map { micrometer => Metrics[IO](ops = micrometer, classifierF = classifierFunc)(stubRoutes) }
+      .unsafeRunSync()
 
     val req = Request[IO](uri = uri("/ok"))
-    val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync
+    val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync()
 
     resp.status shouldBe Status.Ok
-    resp.as[String].unsafeRunSync shouldBe "200 OK"
+    resp.as[String].unsafeRunSync() shouldBe "200 OK"
 
     testMetersFor(
       registry,
@@ -535,15 +561,15 @@ class MicrometerServerMetricsSpec extends UnitTest {
     val config: Config =
       Config("server.")
     val classifierFunc = (_: Request[IO]) => Some("classifier[ ]")
-    val meteredRoutes = Micrometer[IO](registry, config).map { micrometer =>
-      Metrics[IO](ops = micrometer, classifierF = classifierFunc)(stubRoutes)
-    }.unsafeRunSync
+    val meteredRoutes = Micrometer[IO](registry, config)
+      .map { micrometer => Metrics[IO](ops = micrometer, classifierF = classifierFunc)(stubRoutes) }
+      .unsafeRunSync()
 
     val req = Request[IO](uri = uri("/ok"))
-    val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync
+    val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync()
 
     resp.status shouldBe Status.Ok
-    resp.as[String].unsafeRunSync shouldBe "200 OK"
+    resp.as[String].unsafeRunSync() shouldBe "200 OK"
 
     testMetersFor(
       registry,
