@@ -7,15 +7,12 @@ import cats.effect.{Timer => CatsEffectTimer, _}
 
 import org.http4s._
 import org.http4s.implicits._
-import org.http4s.Uri.uri
 import org.http4s.dsl.io._
 import org.http4s.server.middleware.Metrics
 
 import io.micrometer.core.instrument.{MeterRegistry, Tags}
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.micrometer.core.instrument.search.MeterNotFoundException
-
-import org.scalatest._
 
 import org.http4s.metrics.micrometer.util._
 
@@ -167,7 +164,7 @@ class MicrometerServerMetricsSpec extends UnitTest {
           Metrics[IO](micrometer)(stubRoutes)
         }.unsafeRunSync
 
-        val req = Request[IO](uri = uri("/ok"))
+        val req = Request[IO](uri = uri"/ok")
         val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync
 
         resp.status shouldBe Status.Ok
@@ -188,7 +185,7 @@ class MicrometerServerMetricsSpec extends UnitTest {
           Metrics[IO](micrometer)(stubRoutes)
         }.unsafeRunSync
 
-        val req = Request[IO](uri = uri("/bad-request"))
+        val req = Request[IO](uri = uri"/bad-request")
 
         val resp = meteredRoutes.orNotFound(req).unsafeRunSync
 
@@ -210,7 +207,7 @@ class MicrometerServerMetricsSpec extends UnitTest {
           Metrics[IO](micrometer)(stubRoutes)
         }.unsafeRunSync
 
-        val req = Request[IO](uri = uri("/internal-server-error"))
+        val req = Request[IO](uri = uri"/internal-server-error")
 
         val resp = meteredRoutes.orNotFound(req).unsafeRunSync
 
@@ -232,7 +229,7 @@ class MicrometerServerMetricsSpec extends UnitTest {
           Metrics[IO](micrometer)(stubRoutes)
         }.unsafeRunSync
 
-        val req = Request[IO](method = POST, uri = uri("/ok"))
+        val req = Request[IO](method = POST, uri = uri"/ok")
 
         val resp = meteredRoutes.orNotFound(req).unsafeRunSync
 
@@ -253,7 +250,7 @@ class MicrometerServerMetricsSpec extends UnitTest {
           Metrics[IO](micrometer)(stubRoutes)
         }.unsafeRunSync
 
-        val req = Request[IO](method = PUT, uri = uri("/ok"))
+        val req = Request[IO](method = PUT, uri = uri"/ok")
 
         val resp = meteredRoutes.orNotFound(req).unsafeRunSync
 
@@ -274,7 +271,7 @@ class MicrometerServerMetricsSpec extends UnitTest {
           Metrics[IO](micrometer)(stubRoutes)
         }.unsafeRunSync
 
-        val req = Request[IO](method = PATCH, uri = uri("/ok"))
+        val req = Request[IO](method = PATCH, uri = uri"/ok")
 
         val resp = meteredRoutes.orNotFound(req).unsafeRunSync
 
@@ -295,7 +292,7 @@ class MicrometerServerMetricsSpec extends UnitTest {
           Metrics[IO](micrometer)(stubRoutes)
         }.unsafeRunSync
 
-        val req = Request[IO](method = DELETE, uri = uri("/ok"))
+        val req = Request[IO](method = DELETE, uri = uri"/ok")
 
         val resp = meteredRoutes.orNotFound(req).unsafeRunSync
 
@@ -317,7 +314,7 @@ class MicrometerServerMetricsSpec extends UnitTest {
           Metrics[IO](micrometer)(stubRoutes)
         }.unsafeRunSync
 
-        val req = Request[IO](method = HEAD, uri = uri("/ok"))
+        val req = Request[IO](method = HEAD, uri = uri"/ok")
 
         val resp = meteredRoutes.orNotFound(req).unsafeRunSync
 
@@ -338,7 +335,7 @@ class MicrometerServerMetricsSpec extends UnitTest {
           Metrics[IO](micrometer)(stubRoutes)
         }.unsafeRunSync
 
-        val req = Request[IO](method = OPTIONS, uri = uri("/ok"))
+        val req = Request[IO](method = OPTIONS, uri = uri"/ok")
 
         val resp = meteredRoutes.orNotFound(req).unsafeRunSync
 
@@ -360,7 +357,7 @@ class MicrometerServerMetricsSpec extends UnitTest {
           Metrics[IO](micrometer)(stubRoutes)
         }.unsafeRunSync
 
-        val req = Request[IO](method = GET, uri = uri("/error"))
+        val req = Request[IO](method = GET, uri = uri"/error")
 
         val resp = meteredRoutes.orNotFound(req).attempt.unsafeRunSync
 
@@ -381,7 +378,7 @@ class MicrometerServerMetricsSpec extends UnitTest {
           Metrics[IO](micrometer)(stubRoutes)
         }.unsafeRunSync
 
-        val req = Request[IO](method = GET, uri = uri("/abnormal-termination"))
+        val req = Request[IO](method = GET, uri = uri"/abnormal-termination")
 
         val resp = meteredRoutes.orNotFound(req).unsafeRunSync
 
@@ -405,7 +402,7 @@ class MicrometerServerMetricsSpec extends UnitTest {
           Metrics[IO](ops = micrometer, classifierF = classifierFunc)(stubRoutes)
         }.unsafeRunSync
 
-        val req = Request[IO](uri = uri("/ok"))
+        val req = Request[IO](uri = uri"/ok")
         val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync
 
         resp.status shouldBe Status.Ok
@@ -425,7 +422,7 @@ class MicrometerServerMetricsSpec extends UnitTest {
           Metrics[IO](micrometer)(stubRoutes)
         }.unsafeRunSync
 
-        val req = Request[IO](uri = uri("/ok"))
+        val req = Request[IO](uri = uri"/ok")
         val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync
 
         resp.status shouldBe Status.Ok
@@ -447,7 +444,7 @@ class MicrometerServerMetricsSpec extends UnitTest {
       Metrics[IO](ops = micrometer, classifierF = classifierFunc)(stubRoutes)
     }.unsafeRunSync
 
-    val req = Request[IO](uri = uri("/ok"))
+    val req = Request[IO](uri = uri"/ok")
     val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync
 
     resp.status shouldBe Status.Ok
@@ -471,7 +468,7 @@ class MicrometerServerMetricsSpec extends UnitTest {
       Metrics[IO](ops = micrometer, classifierF = classifierFunc)(stubRoutes)
     }.unsafeRunSync
 
-    val req = Request[IO](uri = uri("/ok"))
+    val req = Request[IO](uri = uri"/ok")
     val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync
 
     resp.status shouldBe Status.Ok
@@ -493,7 +490,7 @@ class MicrometerServerMetricsSpec extends UnitTest {
       Metrics[IO](ops = micrometer, classifierF = classifierFunc)(stubRoutes)
     }.unsafeRunSync
 
-    val req = Request[IO](uri = uri("/ok"))
+    val req = Request[IO](uri = uri"/ok")
     val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync
 
     resp.status shouldBe Status.Ok
@@ -516,7 +513,7 @@ class MicrometerServerMetricsSpec extends UnitTest {
       Metrics[IO](ops = micrometer, classifierF = classifierFunc)(stubRoutes)
     }.unsafeRunSync
 
-    val req = Request[IO](uri = uri("/ok"))
+    val req = Request[IO](uri = uri"/ok")
     val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync
 
     resp.status shouldBe Status.Ok
@@ -539,7 +536,7 @@ class MicrometerServerMetricsSpec extends UnitTest {
       Metrics[IO](ops = micrometer, classifierF = classifierFunc)(stubRoutes)
     }.unsafeRunSync
 
-    val req = Request[IO](uri = uri("/ok"))
+    val req = Request[IO](uri = uri"/ok")
     val resp: Response[IO] = meteredRoutes.orNotFound(req).unsafeRunSync
 
     resp.status shouldBe Status.Ok

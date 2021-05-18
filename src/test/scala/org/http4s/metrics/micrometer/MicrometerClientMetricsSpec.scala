@@ -9,15 +9,13 @@ import scala.concurrent.duration._
 import cats.effect.{Timer => CatsEffectTimer, _}
 
 import org.http4s._
-import org.http4s.Uri.uri
+import org.http4s.implicits._
 import org.http4s.dsl.io._
 import org.http4s.client._
 import org.http4s.client.middleware.Metrics
 
 import io.micrometer.core.instrument.{MeterRegistry, Tags}
 import io.micrometer.core.instrument.search.MeterNotFoundException
-
-import org.scalatest._
 
 import org.http4s.metrics.micrometer.util._
 
@@ -251,7 +249,7 @@ class MicrometerClientMetricsSpec extends UnitTest {
         }.unsafeRunSync
 
         val resp = meteredClient
-          .expect[String](Request[IO](POST, uri("ok")))
+          .expect[String](Request[IO](POST, uri"ok"))
           .attempt
           .unsafeRunSync()
 
@@ -272,7 +270,7 @@ class MicrometerClientMetricsSpec extends UnitTest {
         }.unsafeRunSync
 
         val resp = meteredClient
-          .expect[String](Request[IO](PUT, uri("ok")))
+          .expect[String](Request[IO](PUT, uri"ok"))
           .attempt
           .unsafeRunSync()
 
@@ -294,7 +292,7 @@ class MicrometerClientMetricsSpec extends UnitTest {
         }.unsafeRunSync
 
         val resp = meteredClient
-          .expect[String](Request[IO](PATCH, uri("ok")))
+          .expect[String](Request[IO](PATCH, uri"ok"))
           .attempt
           .unsafeRunSync()
 
@@ -316,7 +314,7 @@ class MicrometerClientMetricsSpec extends UnitTest {
         }.unsafeRunSync
 
         val resp = meteredClient
-          .expect[String](Request[IO](DELETE, uri("ok")))
+          .expect[String](Request[IO](DELETE, uri"ok"))
           .attempt
           .unsafeRunSync()
 
@@ -337,7 +335,7 @@ class MicrometerClientMetricsSpec extends UnitTest {
         }.unsafeRunSync
 
         val resp = meteredClient
-          .expect[String](Request[IO](HEAD, uri("ok")))
+          .expect[String](Request[IO](HEAD, uri"ok"))
           .attempt
           .unsafeRunSync()
 
@@ -359,7 +357,7 @@ class MicrometerClientMetricsSpec extends UnitTest {
         }.unsafeRunSync
 
         val resp = meteredClient
-          .expect[String](Request[IO](OPTIONS, uri("ok")))
+          .expect[String](Request[IO](OPTIONS, uri"ok"))
           .attempt
           .unsafeRunSync()
 
