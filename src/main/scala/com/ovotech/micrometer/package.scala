@@ -1,7 +1,8 @@
 package com.ovotech
 
-import scala.collection.JavaConverters._
 import io.micrometer.core.instrument.{Tags, Tag}
+
+import com.ovotech.micrometer.JdkConverters._
 
 package object micrometer {
   implicit class MapToTag(val value: Map[String, String]) extends AnyVal {
