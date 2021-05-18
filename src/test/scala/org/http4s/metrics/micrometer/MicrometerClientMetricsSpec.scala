@@ -510,7 +510,10 @@ class MicrometerClientMetricsSpec extends UnitTest {
                   .value shouldBe "200 OK"
 
                 meterValue(registry, Gauge("client.default.active-requests")) shouldBe 1
-                meterMaxTime(registry, Timer("client.default.response-headers-time")) shouldBe 50.milliseconds
+                meterMaxTime(
+                  registry,
+                  Timer("client.default.response-headers-time")
+                ) shouldBe 50.milliseconds
 
                 a[MeterNotFoundException] should be thrownBy meterCount(
                   registry,

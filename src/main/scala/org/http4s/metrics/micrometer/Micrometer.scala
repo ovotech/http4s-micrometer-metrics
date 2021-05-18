@@ -60,9 +60,8 @@ object Micrometer {
             case TagsReg(tagsString) if tagsString.trim.nonEmpty =>
               tagsString
                 .split(",")
-                .collect {
-                  case TagReg(key, value) =>
-                    Tags.of(key, value)
+                .collect { case TagReg(key, value) =>
+                  Tags.of(key, value)
                 }
                 .reduce(_ and _)
           }

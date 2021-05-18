@@ -61,8 +61,8 @@ object Reporter {
       mx: MeterRegistry,
       metricPrefix: String = "",
       globalTags: Tags = Tags.empty
-  )(
-      implicit F: Concurrent[F]
+  )(implicit
+      F: Concurrent[F]
   ): F[Reporter[F]] =
     for {
       sem <- Semaphore[F](1)
@@ -90,8 +90,8 @@ object Reporter {
       globalTags: Tags,
       activeGauges: mutable.Map[GaugeKey, AtomicInteger],
       gaugeSem: Semaphore[F]
-  )(
-      implicit F: Sync[F]
+  )(implicit
+      F: Sync[F]
   ) extends Reporter[F] {
     // local tags overwrite global tags
     private[this] def effectiveTags(tags: Tags) = globalTags and tags
@@ -108,30 +108,28 @@ object Reporter {
 
     def counter(name: String, tags: Tags): F[Counter[F]] =
       F.delay {
-          micrometer.Counter
-            .builder(metricName(name))
-            .tags(effectiveTags(tags))
-            .register(mx)
+        micrometer.Counter
+          .builder(metricName(name))
+          .tags(effectiveTags(tags))
+          .register(mx)
+      }.map { c =>
+        new Counter[F] {
+          def incrementN(n: Int) =
+            F.delay(require(n >= 0)) *> F.delay(c.increment(n.toDouble))
         }
-        .map { c =>
-          new Counter[F] {
-            def incrementN(n: Int) =
-              F.delay(require(n >= 0)) *> F.delay(c.increment(n.toDouble))
-          }
-        }
+      }
 
     def timer(name: String, tags: Tags): F[Timer[F]] =
       F.delay {
-          micrometer.Timer
-            .builder(metricName(name))
-            .tags(effectiveTags(tags))
-            .register(mx)
+        micrometer.Timer
+          .builder(metricName(name))
+          .tags(effectiveTags(tags))
+          .register(mx)
+      }.map { t =>
+        new Timer[F] {
+          def record(d: FiniteDuration) = F.delay(t.record(d.toNanos, NANOSECONDS))
         }
-        .map { t =>
-          new Timer[F] {
-            def record(d: FiniteDuration) = F.delay(t.record(d.toNanos, NANOSECONDS))
-          }
-        }
+      }
 
     def gauge(name: String, tags: Tags): F[Gauge[F]] = {
       val pname = metricName(name)
@@ -143,7 +141,8 @@ object Reporter {
           micrometer.Gauge
             .builder(
               pname,
-              created, { x: AtomicInteger => x.doubleValue }
+              created,
+              { x: AtomicInteger => x.doubleValue }
             )
             .tags(allTags)
             .register(mx)
