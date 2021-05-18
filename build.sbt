@@ -1,11 +1,9 @@
-import sbtrelease.ExtraReleaseCommands
-import sbtrelease.ReleaseStateTransformations._
-import sbtrelease.tagsonly.TagsOnly._
-
 lazy val http4sVersion = "0.21.23"
 lazy val micrometerVersion = "1.7.0"
 lazy val catsEffectVersion = "3.1.1"
 lazy val scalaTestVersion = "3.2.9"
+
+Global / excludeLintKeys += Compile / console / scalacOptions
 
 lazy val publicArtifactory = "Artifactory Realm" at "https://kaluza.jfrog.io/artifactory/maven"
 
@@ -16,16 +14,7 @@ lazy val publishSettings = Seq(
       usr <- sys.env.get("ARTIFACTORY_USER")
       password <- sys.env.get("ARTIFACTORY_PASS")
     } yield Credentials("Artifactory Realm", "kaluza.jfrog.io", usr, password)
-  }.getOrElse(Credentials(Path.userHome / ".ivy2" / ".credentials")),
-  releaseProcess := Seq[ReleaseStep](
-    checkSnapshotDependencies,
-    releaseStepCommand(ExtraReleaseCommands.initialVcsChecksCommand),
-    setVersionFromTags(releaseTagPrefix.value),
-    runClean,
-    tagRelease,
-    publishArtifacts,
-    pushTagsOnly
-  )
+  }.getOrElse(Credentials(Path.userHome / ".ivy2" / ".credentials"))
 )
 
 lazy val `http4s-micrometer-metrics` = (project in file("."))

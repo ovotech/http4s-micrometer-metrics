@@ -2,6 +2,10 @@ package com.ovotech.micrometer
 
 import java.util.concurrent.atomic.AtomicInteger
 
+import scala.collection.mutable
+import scala.concurrent.duration._
+
+import cats.effect.concurrent.Semaphore
 import cats.effect.implicits._
 import cats.effect.{Sync, Concurrent}
 import cats.implicits._
@@ -9,10 +13,7 @@ import com.ovotech.micrometer.Reporter._
 import io.micrometer.core.instrument.{MeterRegistry, Tags}
 import io.micrometer.core.{instrument => micrometer}
 
-import scala.collection.mutable
-import scala.collection.JavaConverters._
-import scala.concurrent.duration._
-import cats.effect.std.Semaphore
+import JdkConverters._
 
 trait Reporter[F[_]] {
   def counter(name: String): F[Counter[F]] = counter(name, Tags.empty)
