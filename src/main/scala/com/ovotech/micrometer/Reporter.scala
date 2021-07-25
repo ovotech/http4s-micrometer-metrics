@@ -5,7 +5,6 @@ import java.util.concurrent.atomic.AtomicInteger
 import scala.collection.mutable
 import scala.concurrent.duration._
 
-import cats.effect.concurrent.Semaphore
 import cats.effect.implicits._
 import cats.effect.{Sync, Concurrent}
 import cats.implicits._
@@ -14,6 +13,7 @@ import io.micrometer.core.instrument.{MeterRegistry, Tags}
 import io.micrometer.core.{instrument => micrometer}
 
 import JdkConverters._
+import cats.effect.std.Semaphore
 
 trait Reporter[F[_]] {
   def counter(name: String): F[Counter[F]] = counter(name, Tags.empty)
