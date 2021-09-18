@@ -1,7 +1,7 @@
 lazy val http4sVersion = "0.21.23"
 lazy val micrometerVersion = "1.7.0"
 lazy val catsEffectVersion = "2.5.1"
-lazy val scalaTestVersion = "3.2.9"
+lazy val scalaTestVersion = "3.2.10"
 
 Global / excludeLintKeys += Compile / console / scalacOptions
 
