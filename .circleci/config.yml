@@ -3,7 +3,7 @@ version: 2.1
 executors:
   docker:
     docker:
-    - image: circleci/openjdk:11-jdk
+    - image: cimg/openjdk:11.0
     environment:
       JAVA_OPTS: "-Xmx1g -XX:MaxMetaspaceSize=1g -XX:MetaspaceSize=1g -XX:+CMSClassUnloadingEnabled"
       DEFAULT_AWS_REGION: "eu-west-1"
@@ -74,8 +74,7 @@ jobs:
     - restore_sbt_cache
     - run: sbt update
     - store_sbt_cache
-    - run: sbt scalafmtCheck
-    - run: sbt test:scalafmtCheck
+    - run: sbt scalafmtCheckAll
     - run: sbt +test:compile
     - persist_to_workspace:
         root: .

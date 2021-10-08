@@ -5,9 +5,9 @@ import java.util.concurrent.atomic.AtomicInteger
 import scala.collection.mutable
 import scala.concurrent.duration._
 
-import cats.effect.concurrent.Semaphore
 import cats.effect.implicits._
-import cats.effect.{Sync, Concurrent}
+import cats.effect.{Sync, Async}
+import cats.effect.std.Semaphore
 import cats.implicits._
 import com.ovotech.micrometer.Reporter._
 import io.micrometer.core.instrument.{MeterRegistry, Tags}
@@ -58,12 +58,10 @@ object Reporter {
     def setValue(n: Int): F[Unit]
   }
 
-  def fromRegistry[F[_]](
+  def fromRegistry[F[_]: Async](
       mx: MeterRegistry,
       metricPrefix: String = "",
       globalTags: Tags = Tags.empty
-  )(implicit
-      F: Concurrent[F]
   ): F[Reporter[F]] =
     for {
       sem <- Semaphore[F](1)
@@ -85,14 +83,12 @@ object Reporter {
     override def toString: String = s"GaugeKey($name, $tags)"
   }
 
-  class MeterRegistryReporter[F[_]](
+  class MeterRegistryReporter[F[_]: Sync](
       mx: MeterRegistry,
       metricPrefix: String,
       globalTags: Tags,
       activeGauges: mutable.Map[GaugeKey, AtomicInteger],
       gaugeSem: Semaphore[F]
-  )(implicit
-      F: Sync[F]
   ) extends Reporter[F] {
     // local tags overwrite global tags
     private[this] def effectiveTags(tags: Tags) = globalTags and tags
@@ -108,37 +104,41 @@ object Reporter {
       effectivePrefix + base
 
     def counter(name: String, tags: Tags): F[Counter[F]] =
-      F.delay {
-        micrometer.Counter
-          .builder(metricName(name))
-          .tags(effectiveTags(tags))
-          .register(mx)
-      }.map { c =>
-        new Counter[F] {
-          def incrementN(n: Int) =
-            F.delay(require(n >= 0)) *> F.delay(c.increment(n.toDouble))
+      Sync[F]
+        .delay {
+          micrometer.Counter
+            .builder(metricName(name))
+            .tags(effectiveTags(tags))
+            .register(mx)
         }
-      }
+        .map { c =>
+          new Counter[F] {
+            def incrementN(n: Int) =
+              Sync[F].delay(require(n >= 0)) *> Sync[F].delay(c.increment(n.toDouble))
+          }
+        }
 
     def timer(name: String, tags: Tags): F[Timer[F]] =
-      F.delay {
-        micrometer.Timer
-          .builder(metricName(name))
-          .tags(effectiveTags(tags))
-          .register(mx)
-      }.map { t =>
-        new Timer[F] {
-          def record(d: FiniteDuration) = F.delay(t.record(d.toNanos, NANOSECONDS))
+      Sync[F]
+        .delay {
+          micrometer.Timer
+            .builder(metricName(name))
+            .tags(effectiveTags(tags))
+            .register(mx)
         }
-      }
+        .map { t =>
+          new Timer[F] {
+            def record(d: FiniteDuration) = Sync[F].delay(t.record(d.toNanos, NANOSECONDS))
+          }
+        }
 
     def gauge(name: String, tags: Tags): F[Gauge[F]] = {
       val pname = metricName(name)
       val allTags = effectiveTags(tags)
 
       val create = for {
-        created <- F.delay(new AtomicInteger(0))
-        _ <- F.delay(
+        created <- Sync[F].delay(new AtomicInteger(0))
+        _ <- Sync[F].delay(
           micrometer.Gauge
             .builder(
               pname,
@@ -151,22 +151,22 @@ object Reporter {
 
       } yield created
 
-      gaugeSem.withPermit {
+      gaugeSem.permit.use { _ =>
         val gaugeKey = new GaugeKey(pname, allTags)
         activeGauges
           .get(gaugeKey)
           .fold {
-            create.flatTap(x => F.delay(activeGauges.put(gaugeKey, x)))
+            create.flatTap(x => Sync[F].delay(activeGauges.put(gaugeKey, x)))
           }(_.pure[F])
           .map { g =>
             new Gauge[F] {
               def incrementN(n: Int): F[Unit] =
-                F.delay(g.getAndAdd(n)).void
+                Sync[F].delay(g.getAndAdd(n)).void
 
               def surround[A](action: F[A]): F[A] =
                 increment.bracket(_ => action)(_ => decrement)
 
-              def setValue(n: Int): F[Unit] = F.delay(g.set(n))
+              def setValue(n: Int): F[Unit] = Sync[F].delay(g.set(n))
             }
           }
       }

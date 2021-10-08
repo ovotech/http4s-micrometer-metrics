@@ -14,6 +14,8 @@ import org.http4s.Method.GET
 
 import io.micrometer.core.instrument.{MeterRegistry, Tags}
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
+import cats.Applicative
+import org.http4s.HttpRoutes
 
 object util {
 
@@ -32,7 +34,7 @@ object util {
       Ok("200 OK").map(
         _.withBodyStream(Stream.raiseError[IO](new RuntimeException("Abnormal termination")))
       )
-    case _ =>
+    case r =>
       NotFound("404 Not Found")
   }
 
@@ -86,19 +88,20 @@ object util {
     def apply[F[_]: Sync] = new Clock[F] {
       private var count = 0L
 
-      override def realTime(unit: TimeUnit): F[Long] = Sync[F].delay {
+      def applicative: Applicative[F] = Sync[F]
+
+      override def realTime: F[FiniteDuration] = Sync[F].delay {
         count += 50
-        unit.convert(count, TimeUnit.MILLISECONDS)
+        count.milliseconds
       }
 
-      override def monotonic(unit: TimeUnit): F[Long] = Sync[F].delay {
+      override def monotonic: F[FiniteDuration] = Sync[F].delay {
         count += 50
-        unit.convert(count, TimeUnit.MILLISECONDS)
+        count.milliseconds
       }
     }
   }
 
   val meterRegistryResource: Resource[IO, SimpleMeterRegistry] =
     Resource.make(IO(new SimpleMeterRegistry))(r => IO(r.close))
-
 }

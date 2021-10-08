@@ -1,7 +1,10 @@
-lazy val http4sVersion = "0.21.23"
-lazy val micrometerVersion = "1.7.0"
-lazy val catsEffectVersion = "2.5.1"
-lazy val scalaTestVersion = "3.2.9"
+lazy val http4sVersion = "0.23.5"
+lazy val micrometerVersion = "1.7.4"
+lazy val catsEffectVersion = "3.2.9"
+lazy val scalaTestVersion = "3.2.10"
+lazy val munitVersion = "0.7.29"
+lazy val munitCatsEffect3Version = "1.0.6"
+lazy val slf4jVersion = "1.7.32"
 
 Global / excludeLintKeys += Compile / console / scalacOptions
 
@@ -54,11 +57,13 @@ lazy val `http4s-micrometer-metrics` = (project in file("."))
       "org.typelevel" %% "cats-effect" % catsEffectVersion,
       "org.http4s" %% "http4s-core" % http4sVersion,
       "io.micrometer" % "micrometer-core" % micrometerVersion,
-      "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
-      "org.http4s" %% "http4s-testing" % http4sVersion % Test,
+      "org.http4s" %% "http4s-laws" % http4sVersion % Test,
       "org.http4s" %% "http4s-server" % http4sVersion % Test,
       "org.http4s" %% "http4s-dsl" % http4sVersion % Test,
-      "org.http4s" %% "http4s-client" % http4sVersion % Test
+      "org.http4s" %% "http4s-client" % http4sVersion % Test,
+      "org.scalameta" %% "munit" % munitVersion % Test,
+      "org.typelevel" %% "munit-cats-effect-3" % munitCatsEffect3Version % Test,
+      "org.slf4j" % "slf4j-nop" % slf4jVersion % Test
     )
   )
   .settings(publishSettings)
