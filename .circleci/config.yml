@@ -144,7 +144,9 @@ workflows:
         - unit_test
         filters:
           branches:
-            only: master
+            only: 
+            - master
+            - release/*
 
     - release:
         context: comms-internal-build
