@@ -146,7 +146,7 @@ workflows:
           branches:
             only: 
             - master
-            - release/*
+            - /release/.*/
 
     - release:
         context: comms-internal-build
