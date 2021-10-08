@@ -7,7 +7,7 @@ import cats.effect._
 import cats.implicits._
 
 import org.http4s.metrics.{MetricsOps, TerminationType}
-import org.http4s.metrics.TerminationType.{Abnormal, Error, Timeout}
+import org.http4s.metrics.TerminationType._
 import org.http4s.{Method, Status}
 
 import io.micrometer.core.instrument.{MeterRegistry, Tags}
@@ -24,16 +24,16 @@ object Micrometer {
   private val TagsReg = """.*?\[([^\]]*)\]""".r
   private val TagReg = """([^:]*)\s*:\s*(.*)""".r
 
-  def apply[F[_]](
+  def apply[F[_]: Async](
       registry: MeterRegistry,
       config: Config
-  )(implicit F: Concurrent[F]): F[MetricsOps[F]] =
+  ): F[MetricsOps[F]] =
     fromRegistry[F](registry, config)
 
-  def fromRegistry[F[_]](
+  def fromRegistry[F[_]: Async](
       registry: MeterRegistry,
       config: Config
-  )(implicit F: Concurrent[F]): F[MetricsOps[F]] =
+  ): F[MetricsOps[F]] =
     Reporter
       .fromRegistry[F](registry, config.prefix, config.tags)
       .map(fromReporter(_))
@@ -93,8 +93,9 @@ object Micrometer {
           classifier: Option[String]
       ): F[Unit] = {
         val terminationTags = terminationType match {
-          case Abnormal => Tags.of("termination", "abnormal")
-          case Error => Tags.of("termination", "error")
+          case Abnormal(_) => Tags.of("termination", "abnormal")
+          case Error(_) => Tags.of("termination", "error")
+          case Canceled => Tags.of("termination", "cancelled")
           case Timeout => Tags.of("termination", "timeout")
         }
 
