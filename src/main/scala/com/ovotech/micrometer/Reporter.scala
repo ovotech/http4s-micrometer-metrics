@@ -51,7 +51,9 @@ object Reporter {
     def decrement: F[Unit] = incrementN(-1)
     def decrementN(n: Int): F[Unit] = incrementN(-n)
 
-    /** Run `action` with the gauge incremented before execution and decremented after termination (including error or cancelation) */
+    /** Run `action` with the gauge incremented before execution and decremented after termination
+      * (including error or cancelation)
+      */
     def surround[A](action: F[A]): F[A]
 
     /** Sets the gauge's value to `n` */

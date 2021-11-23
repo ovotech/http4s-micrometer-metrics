@@ -8,18 +8,6 @@ lazy val slf4jVersion = "1.7.32"
 
 Global / excludeLintKeys += Compile / console / scalacOptions
 
-lazy val publicArtifactory = "Artifactory Realm" at "https://kaluza.jfrog.io/artifactory/maven"
-
-lazy val publishSettings = Seq(
-  publishTo := Some(publicArtifactory),
-  credentials += {
-    for {
-      usr <- sys.env.get("ARTIFACTORY_USER")
-      password <- sys.env.get("ARTIFACTORY_PASS")
-    } yield Credentials("Artifactory Realm", "kaluza.jfrog.io", usr, password)
-  }.getOrElse(Credentials(Path.userHome / ".ivy2" / ".credentials"))
-)
-
 lazy val `http4s-micrometer-metrics` = (project in file("."))
   .settings(
     inThisBuild(
@@ -37,12 +25,6 @@ lazy val `http4s-micrometer-metrics` = (project in file("."))
     homepage := Some(url("https://github.com/ovotech/http4s-micrometer-metrics")),
     startYear := Some(2019),
     licenses := Seq(("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))),
-    scmInfo := Some(
-      ScmInfo(
-        url("https://github.com/ovotech/http4s-micrometer-metrics"),
-        "git@github.com:ovotech/http4s-micrometer-metrics.git"
-      )
-    ),
     // TODO Find a way to extract those from github (sbt plugin)
     developers := List(
       Developer(
@@ -52,7 +34,6 @@ lazy val `http4s-micrometer-metrics` = (project in file("."))
         url("https://github.com/filosganga")
       )
     ),
-    scalafmtOnCompile := true,
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-effect" % catsEffectVersion,
       "org.http4s" %% "http4s-core" % http4sVersion,
@@ -66,4 +47,3 @@ lazy val `http4s-micrometer-metrics` = (project in file("."))
       "org.slf4j" % "slf4j-nop" % slf4jVersion % Test
     )
   )
-  .settings(publishSettings)

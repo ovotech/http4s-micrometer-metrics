@@ -1,9 +1,16 @@
 pull_request_rules:
 
+  - name: label scala-steward's PRs
+    conditions:
+      - author=scala-steward
+    actions:
+      label:
+        add: ["type: dependencies"]
+
   - name: label ovo-scala-steward's failed PRs
     conditions:
       - author=scala-steward
-      - status-failure~=ci/circleci
+      - status-failure=ci
     actions:
       label:
         add:
@@ -13,7 +20,7 @@ pull_request_rules:
   - name: label scala-steward's major version PRs
     conditions:
       - author=scala-steward
-      - body~=labels:.*semver-major
+      - body~=labels:.*early-semver-major
     actions:
       label:
         add:
@@ -23,9 +30,8 @@ pull_request_rules:
   - name: automatically merge scala-steward's minor version PRs
     conditions:
       - author=scala-steward
-      - "status-success=ci/circleci: build"
-      - "status-success=ci/circleci: unit_test"
-      - body~=labels:.*semver-minor
+      - "status-success=ci"
+      - body~=labels:.*early-semver-minor
     actions:
       review:
         type: APPROVE
@@ -44,9 +50,8 @@ pull_request_rules:
   - name: automatically merge scala-steward's patch version PRs
     conditions:
       - author=ovo-scala-steward
-      - "status-success=ci/circleci: build"
-      - "status-success=ci/circleci: unit_test"
-      - body~=labels:.*semver-patch
+      - "status-success=ci"
+      - body~=labels:.*early-semver-patch
     actions:
       review:
         type: APPROVE
@@ -61,3 +66,11 @@ pull_request_rules:
         remove:
           - failed-update
       delete_head_branch: {}
+
+  - name: automatic update for dependency update PRs
+    conditions:
+      - -conflict # skip PRs with conflicts
+      - -draft # filter-out GH draft PRs
+      - "label=type: dependencies"
+    actions:
+      update: {}
