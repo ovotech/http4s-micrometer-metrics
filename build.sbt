@@ -25,7 +25,7 @@ lazy val `http4s-micrometer-metrics` = (project in file("."))
     inThisBuild(
       List(
         organization := "com.ovoenergy",
-        scalaVersion := "2.13.7",
+        scalaVersion := "2.13.8",
         crossScalaVersions += "2.12.10",
         Compile / console / scalacOptions -= "-Ywarn-unused-import"
       )
