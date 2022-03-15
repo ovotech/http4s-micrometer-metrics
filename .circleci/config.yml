@@ -65,6 +65,13 @@ commands:
 
 
 jobs:
+  job_required_for_mergify:
+    docker:
+      - image: "alpine:latest"
+    steps:
+      - run:
+          command: exit 0
+
   build:
 
     executor: docker
@@ -137,6 +144,14 @@ workflows:
     - unit_test:
         requires:
         - build
+
+    - job_required_for_mergify:
+        requires:
+          - unit_test
+        filters:
+          branches:
+            ignore:
+              - master
 
     - tag:
         requires:
