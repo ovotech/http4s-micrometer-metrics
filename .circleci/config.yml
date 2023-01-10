@@ -9,16 +9,6 @@ executors:
       DEFAULT_AWS_REGION: "eu-west-1"
       AWS_REGION: "eu-west-1"
 
-  machine:
-    machine:
-      enabled: true
-      image: circleci/classic:edge
-
-    environment:
-      JAVA_OPTS: "-Xmx1g -XX:MaxMetaspaceSize=1g -XX:MetaspaceSize=1g -XX:+CMSClassUnloadingEnabled"
-      DEFAULT_AWS_REGION: "eu-west-1"
-      AWS_REGION: "eu-west-1"
-
 commands:
   generate_sbt_cache_key:
     description: "Generate sbt cache key"
@@ -158,7 +148,7 @@ workflows:
         - unit_test
         filters:
           branches:
-            only: 
+            only:
             - master
             - /release/.*/
 
