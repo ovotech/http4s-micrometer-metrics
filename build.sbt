@@ -1,5 +1,6 @@
 lazy val http4sVersion = "0.23.17"
 lazy val micrometerVersion = "1.7.5"
+lazy val meters4sVersion = "1.1.2"
 lazy val catsEffectVersion = "3.3.0"
 lazy val scalaTestVersion = "3.2.10"
 lazy val munitVersion = "1.0.0-M7"
@@ -57,6 +58,7 @@ lazy val `http4s-micrometer-metrics` = (project in file("."))
       "org.typelevel" %% "cats-effect" % catsEffectVersion,
       "org.http4s" %% "http4s-core" % http4sVersion,
       "io.micrometer" % "micrometer-core" % micrometerVersion,
+      "com.ovoenergy" %% "meters4s" % meters4sVersion,
       "org.http4s" %% "http4s-laws" % http4sVersion % Test,
       "org.http4s" %% "http4s-server" % http4sVersion % Test,
       "org.http4s" %% "http4s-dsl" % http4sVersion % Test,
