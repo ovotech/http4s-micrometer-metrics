@@ -6,11 +6,9 @@ import java.util.concurrent.TimeoutException
 import scala.concurrent.duration._
 
 import cats.effect.IO
-import cats.syntax.all._
 
 import org.http4s._
 import org.http4s.syntax.all._
-import org.http4s.Uri.uri
 import org.http4s.dsl.io._
 import org.http4s.client._
 import org.http4s.client.middleware.Metrics
