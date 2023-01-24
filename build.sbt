@@ -1,9 +1,10 @@
-lazy val http4sVersion = "0.23.6"
+lazy val http4sVersion = "0.23.17"
 lazy val micrometerVersion = "1.7.5"
+lazy val meters4sVersion = "1.1.2"
 lazy val catsEffectVersion = "3.3.0"
 lazy val scalaTestVersion = "3.2.10"
-lazy val munitVersion = "0.7.29"
-lazy val munitCatsEffect3Version = "1.0.7"
+lazy val munitVersion = "1.0.0-M7"
+lazy val munitCatsEffectVersion = "2.0.0-M3"
 lazy val slf4jVersion = "1.7.32"
 
 Global / excludeLintKeys += Compile / console / scalacOptions
@@ -25,7 +26,7 @@ lazy val `http4s-micrometer-metrics` = (project in file("."))
     inThisBuild(
       List(
         organization := "com.ovoenergy",
-        scalaVersion := "2.13.7",
+        scalaVersion := "2.13.10",
         crossScalaVersions += "2.12.17",
         Compile / console / scalacOptions -= "-Ywarn-unused-import"
       )
@@ -57,12 +58,13 @@ lazy val `http4s-micrometer-metrics` = (project in file("."))
       "org.typelevel" %% "cats-effect" % catsEffectVersion,
       "org.http4s" %% "http4s-core" % http4sVersion,
       "io.micrometer" % "micrometer-core" % micrometerVersion,
+      "com.ovoenergy" %% "meters4s" % meters4sVersion,
       "org.http4s" %% "http4s-laws" % http4sVersion % Test,
       "org.http4s" %% "http4s-server" % http4sVersion % Test,
       "org.http4s" %% "http4s-dsl" % http4sVersion % Test,
       "org.http4s" %% "http4s-client" % http4sVersion % Test,
       "org.scalameta" %% "munit" % munitVersion % Test,
-      "org.typelevel" %% "munit-cats-effect-3" % munitCatsEffect3Version % Test,
+      "org.typelevel" %% "munit-cats-effect" % munitCatsEffectVersion % Test,
       "org.slf4j" % "slf4j-nop" % slf4jVersion % Test
     )
   )
