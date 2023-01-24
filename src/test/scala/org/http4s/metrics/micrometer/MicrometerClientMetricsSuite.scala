@@ -23,7 +23,7 @@ import org.http4s.metrics.micrometer.util._
 class MicrometerClientMetricsSuite extends munit.CatsEffectSuite {
 
   def resourcesWithClassifier(classifierF: Request[IO] => Option[String] = _ => None) =
-    ResourceFixture {
+    ResourceFunFixture {
       meterRegistryResource.evalMap { registry =>
         implicit val clock = FakeClock[IO]
         val config: Config = Config("client.")

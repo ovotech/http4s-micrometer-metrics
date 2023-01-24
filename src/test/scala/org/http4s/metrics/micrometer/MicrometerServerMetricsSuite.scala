@@ -20,7 +20,7 @@ class MicrometerServerMetricsSuite extends munit.CatsEffectSuite {
       tags: Tags = Tags.empty(),
       classifierF: Request[IO] => Option[String] = _ => None
   ) =
-    ResourceFixture {
+    ResourceFunFixture {
       meterRegistryResource.evalMap { registry =>
         implicit val clock = FakeClock[IO]
         val config: Config = Config("server.", tags)
