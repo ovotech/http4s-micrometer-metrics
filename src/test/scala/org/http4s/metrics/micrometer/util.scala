@@ -15,7 +15,6 @@ import org.http4s.Method.GET
 import io.micrometer.core.instrument.{MeterRegistry, Tags}
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import cats.Applicative
-import org.http4s.HttpRoutes
 
 object util {
 
@@ -34,7 +33,7 @@ object util {
       Ok("200 OK").map(
         _.withBodyStream(Stream.raiseError[IO](new RuntimeException("Abnormal termination")))
       )
-    case r =>
+    case _ =>
       NotFound("404 Not Found")
   }
 

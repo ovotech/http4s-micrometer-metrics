@@ -5,6 +5,8 @@ project/metals.sbt
 project/project/
 .bloop/
 .idea/
+.vscode/
+.history/
 
 .DS_Store
 
