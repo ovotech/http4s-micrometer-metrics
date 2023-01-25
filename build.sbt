@@ -5,7 +5,7 @@ lazy val catsEffectVersion = "3.3.0"
 lazy val scalaTestVersion = "3.2.10"
 lazy val munitVersion = "1.0.0-M7"
 lazy val munitCatsEffectVersion = "2.0.0-M3"
-lazy val slf4jVersion = "1.7.32"
+lazy val slf4jVersion = "1.7.36"
 
 Global / excludeLintKeys += Compile / console / scalacOptions
 
