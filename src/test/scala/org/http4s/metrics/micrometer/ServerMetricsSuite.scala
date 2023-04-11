@@ -1,35 +1,53 @@
+/*
+ * Copyright 2023 Kaluza Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.http4s.metrics.micrometer
 
 import scala.concurrent.duration._
 
-import cats.effect.IO
+import cats.effect._
 
 import org.http4s._
-import org.http4s.syntax.all._
 import org.http4s.dsl.io._
-import org.http4s.server.middleware.Metrics
-
-import io.micrometer.core.instrument.{MeterRegistry, Tags}
-import io.micrometer.core.instrument.search.MeterNotFoundException
-
 import org.http4s.metrics.micrometer.util._
+import org.http4s.server.middleware.Metrics
+import org.http4s.syntax.all._
+import com.ovoenergy.meters4s.{MetricsConfig, Reporter}
+import io.micrometer.core.instrument.search.MeterNotFoundException
+import io.micrometer.core.instrument.{MeterRegistry, Tags}
 
 class MicrometerServerMetricsSuite extends munit.CatsEffectSuite {
 
   def resourcesWithParams(
-      tags: Tags = Tags.empty(),
+      tags: Map[String, String] = Map.empty,
       classifierF: Request[IO] => Option[String] = _ => None
   ) =
-    ResourceFixture {
+    ResourceFunFixture {
       meterRegistryResource.evalMap { registry =>
-        implicit val clock = FakeClock[IO]
-        val config: Config = Config("server.", tags)
+        val config: MetricsConfig = MetricsConfig("server.", tags)
+        Reporter.fromRegistry[IO](registry, config).map { reporter =>
+          implicit val clock: Clock[IO] = FakeClock[IO]
 
-        val stubRoutes = HttpRoutes.of[IO](stub)
+          val metrics = Meters4s[IO](reporter)
 
-        Micrometer[IO](registry, config)
-          .map { micrometer => Metrics[IO](micrometer, classifierF = classifierF)(stubRoutes) }
-          .map(x => (registry, x))
+          val stubRoutes = HttpRoutes.of[IO](stub)
+          val meteredStubRoutes = Metrics[IO](metrics, classifierF = classifierF)(stubRoutes)
+
+          (registry, meteredStubRoutes)
+        }
       }
     }
 
@@ -316,7 +334,7 @@ class MicrometerServerMetricsSuite extends munit.CatsEffectSuite {
       .flatMap(_ => IO(testMetersFor(registry, classifier = "classifier")))
   }
 
-  resourcesWithParams(tags = Tags.of("foo", "bar")).test(
+  resourcesWithParams(tags = Map("foo" -> "bar")).test(
     "Http routes with a micrometer metrics middleware should tags metrics using global tags"
   ) { case (registry, meteredRoutes) =>
     meteredRoutes
@@ -327,7 +345,7 @@ class MicrometerServerMetricsSuite extends munit.CatsEffectSuite {
   }
 
   resourcesWithParams(
-    tags = Tags.of("foo", "bar", "bar", "baz"),
+    tags = Map("foo" -> "bar", "bar" -> "baz"),
     classifierF = (_: Request[IO]) => Some("classifier[bar:bazv2,baz:bar]")
   ).test(
     "Http routes with a micrometer metrics middleware should use the provided request classifier to overwrite the tags"
@@ -348,7 +366,7 @@ class MicrometerServerMetricsSuite extends munit.CatsEffectSuite {
   }
 
   resourcesWithParams(
-    tags = Tags.of("foo", "bar", "bar", "baz"),
+    tags = Map("foo" -> "bar", "bar" -> "baz"),
     classifierF = (_: Request[IO]) => Some("[bar:bazv2,baz:bar]")
   ).test(
     "Http routes with a micrometer metrics middleware should use the provided request empty classifier to overwrite the tags"
@@ -368,7 +386,7 @@ class MicrometerServerMetricsSuite extends munit.CatsEffectSuite {
   }
 
   resourcesWithParams(
-    tags = Tags.of("foo", "bar", "bar", "baz"),
+    tags = Map("foo" -> "bar", "bar" -> "baz"),
     classifierF = (_: Request[IO]) => Some("classifier[]")
   ).test(
     "Http routes with a micrometer metrics middleware should handle classifier with empty tags"
@@ -389,7 +407,7 @@ class MicrometerServerMetricsSuite extends munit.CatsEffectSuite {
   }
 
   resourcesWithParams(
-    tags = Tags.of("foo", "bar", "bar", "baz"),
+    tags = Map("foo" -> "bar", "bar" -> "baz"),
     classifierF = (_: Request[IO]) => Some("classifier")
   ).test(
     "Http routes with a micrometer metrics middleware should handle classifier with no tags"

@@ -1,21 +1,34 @@
+/*
+ * Copyright 2023 Kaluza Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.http4s.metrics.micrometer
 
 import java.io.IOException
 import java.util.concurrent.{TimeUnit, TimeoutException}
-
 import scala.concurrent.duration._
 
+import cats.Applicative
 import cats.effect._
 import fs2.Stream
 
-import org.http4s.{Request, Response}
-import org.http4s.dsl.io._
 import org.http4s.Method.GET
-
-import io.micrometer.core.instrument.{MeterRegistry, Tags}
+import org.http4s.dsl.io._
+import org.http4s.{Request, Response}
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
-import cats.Applicative
-import org.http4s.HttpRoutes
+import io.micrometer.core.instrument.{MeterRegistry, Tags}
 
 object util {
 
@@ -34,7 +47,7 @@ object util {
       Ok("200 OK").map(
         _.withBodyStream(Stream.raiseError[IO](new RuntimeException("Abnormal termination")))
       )
-    case r =>
+    case _ =>
       NotFound("404 Not Found")
   }
 
