@@ -7,7 +7,36 @@ lazy val munitVersion = "1.0.0-M7"
 lazy val munitCatsEffectVersion = "2.0.0-M3"
 lazy val slf4jVersion = "1.7.32"
 
+Global / onChangedBuildSource := ReloadOnSourceChanges
 Global / excludeLintKeys += Compile / console / scalacOptions
+
+ThisBuild / organization := "com.kaluza"
+ThisBuild / organizationName := "Kaluza Ltd"
+ThisBuild / organizationHomepage := Some(url("https://www.kaluza.com/"))
+ThisBuild / homepage := Some(url("https://github.com/ovotech/http4s-micrometer-metrics"))
+ThisBuild / startYear := Some(2019)
+ThisBuild / scalaVersion := "3.2.2"
+ThisBuild / crossScalaVersions ++= List("2.13.10", "2.12.10")
+ThisBuild / licenses := Seq(("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0")))
+ThisBuild / scmInfo := Some(
+  ScmInfo(
+    url("https://github.com/ovotech/http4s-micrometer-metrics"),
+    "git@github.com:ovotech/http4s-micrometer-metrics.git"
+  )
+)
+// TODO Find a way to extract those from github (sbt plugin)
+ThisBuild / developers := List(
+  Developer(
+    "filippo.deluca",
+    "Filippo De Luca",
+    "filippo.deluca@kaluza.com",
+    url("https://github.com/filosganga")
+  )
+)
+
+ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0"
+ThisBuild / semanticdbEnabled := true
+ThisBuild / semanticdbVersion := scalafixSemanticdb.revision
 
 lazy val publicArtifactory = "Artifactory Realm" at "https://kaluza.jfrog.io/artifactory/maven"
 
@@ -21,44 +50,22 @@ lazy val publishSettings = Seq(
   }.getOrElse(Credentials(Path.userHome / ".ivy2" / ".credentials"))
 )
 
-lazy val `http4s-micrometer-metrics` = (project in file("."))
+lazy val `http4s-meters4s-metrics` = (project in file("."))
   .settings(
-    inThisBuild(
-      List(
-        organization := "com.ovoenergy",
-        scalaVersion := "2.13.10",
-        crossScalaVersions += "2.12.10",
-        Compile / console / scalacOptions -= "-Ywarn-unused-import"
-      )
-    ),
+    name := "http4s-meters4s-metrics",
     scalacOptions -= "-Xfatal-warnings",
-    name := "http4s-micrometer-metrics",
-    organizationName := "OVO Energy",
-    organizationHomepage := Some(url("https://www.ovoenergy.com/")),
-    homepage := Some(url("https://github.com/ovotech/http4s-micrometer-metrics")),
-    startYear := Some(2019),
-    licenses := Seq(("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))),
-    scmInfo := Some(
-      ScmInfo(
-        url("https://github.com/ovotech/http4s-micrometer-metrics"),
-        "git@github.com:ovotech/http4s-micrometer-metrics.git"
-      )
-    ),
-    // TODO Find a way to extract those from github (sbt plugin)
-    developers := List(
-      Developer(
-        "filippo.deluca",
-        "Filippo De Luca",
-        "filippo.deluca@ovoenergy.com",
-        url("https://github.com/filosganga")
-      )
-    ),
+    scalacOptions ++= {
+      CrossVersion.partialVersion(scalaVersion.value) match {
+        case Some((2, _)) => List("-Xsource:3")
+        case _ => List.empty
+      }
+    },
     scalafmtOnCompile := true,
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-effect" % catsEffectVersion,
       "org.http4s" %% "http4s-core" % http4sVersion,
-      "io.micrometer" % "micrometer-core" % micrometerVersion,
       "com.ovoenergy" %% "meters4s" % meters4sVersion,
+      "io.micrometer" % "micrometer-core" % micrometerVersion % Test,
       "org.http4s" %% "http4s-laws" % http4sVersion % Test,
       "org.http4s" %% "http4s-server" % http4sVersion % Test,
       "org.http4s" %% "http4s-dsl" % http4sVersion % Test,
