@@ -28,7 +28,7 @@ In addition to these tags, each metric will record the global tags set in the Co
 
 It is also possible to set a prefix for the metrics name using the `prefix` configuration setting.
 
-The `default` name can be customized using a classifier function. With the same classifier function, is possible to record additional tags using this syntax: `classifier[tag1:value1,tag2:value2,tag3:value3]`. The classifier part can be blank as well as the tags part can be empty.
+The `default` name can be customised using a classifier function. With the same classifier function, it is possible to record additional tags using this syntax: `classifier[tag1:value1,tag2:value2,tag3:value3]`. The classifier part can be blank as well as the tags part can be empty.
 
 The standard tags values are the following:
 
