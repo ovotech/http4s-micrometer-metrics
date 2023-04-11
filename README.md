@@ -9,7 +9,7 @@ This is an implementation of [http4s](https://http4s.org/s) metrics based on [me
 ## Installation
 
 ```sbt
-libraryDependencies += "com.kaluza" %% "http4s-metrics4s-metrics" % "<latestVersion>"
+libraryDependencies += "com.kaluza" %% "http4s-meters4s-metrics" % "<latestVersion>"
 ```
 
 ## Metrics names
