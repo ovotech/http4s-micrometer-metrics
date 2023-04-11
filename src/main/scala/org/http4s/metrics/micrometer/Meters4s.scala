@@ -1,46 +1,38 @@
+/*
+ * Copyright 2019 Kaluza Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.http4s.metrics.micrometer
 
 import scala.concurrent.duration._
 
-import cats.FlatMap
 import cats.effect._
-import cats.implicits._
+import cats.syntax.all._
 
-import org.http4s.metrics.{MetricsOps, TerminationType}
 import org.http4s.metrics.TerminationType._
+import org.http4s.metrics.{MetricsOps, TerminationType}
 import org.http4s.{Method, Status}
+import com.ovoenergy.meters4s.Reporter
 
-import io.micrometer.core.instrument.MeterRegistry
-
-import com.ovoenergy.meters4s.{MetricsConfig, Reporter}
-
-case class Config(
-    prefix: String,
-    tags: Map[String, String] = Map.empty
-)
-
-object Micrometer {
+object Meters4s {
 
   private val TagsReg = """.*?\[([^\]]*)\]""".r
   private val TagReg = """([^:]*)\s*:\s*(.*)""".r
 
   def apply[F[_]: Async](
-      registry: MeterRegistry,
-      config: Config
-  ): F[MetricsOps[F]] =
-    fromRegistry[F](registry, config)
-
-  def fromRegistry[F[_]: Async](
-      registry: MeterRegistry,
-      config: Config
-  ): F[MetricsOps[F]] =
-    Reporter
-      .fromRegistry[F](registry, MetricsConfig(config.prefix, config.tags))
-      .map(fromReporter(_))
-
-  def fromReporter[F[_]: FlatMap](
-      reporter: Reporter[F],
-      extraTags: Map[String, String] = Map.empty
+      reporter: Reporter[F]
   ): MetricsOps[F] =
     new MetricsOps[F] {
 
@@ -55,7 +47,7 @@ object Micrometer {
         s"${namespace(classifier)}.$key"
 
       private def tags(classifier: Option[String]): Map[String, String] = {
-        extraTags ++ classifier
+        classifier
           .collect {
             case TagsReg(tagsString) if tagsString.trim.nonEmpty =>
               tagsString
