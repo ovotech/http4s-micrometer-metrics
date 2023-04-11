@@ -1,63 +1,19 @@
 pull_request_rules:
-
-  - name: label ovo-scala-steward's failed PRs
-    conditions:
-      - author=scala-steward
-      - status-failure~=ci/circleci
-    actions:
-      label:
-        add:
-          - scala-steward
-          - failed-update
-
-  - name: label scala-steward's major version PRs
-    conditions:
-      - author=scala-steward
-      - body~=labels:.*semver-major
-    actions:
-      label:
-        add:
-          - scala-steward
-          - major-update
-
-  - name: automatically merge scala-steward's minor version PRs
-    conditions:
-      - author=scala-steward
-      - "status-success=ci/circleci: build"
-      - "status-success=ci/circleci: unit_test"
-      - body~=labels:.*semver-minor
-    actions:
-      review:
-        type: APPROVE
-      merge:
-        strict: smart
-        strict_method: rebase
-        method: merge
-      label:
-        add:
-          - scala-steward
-          - minor-update
-        remove:
-          - failed-update
-      delete_head_branch: {}
-
-  - name: automatically merge scala-steward's patch version PRs
+  - name: Automatically approve
     conditions:
       - author=ovo-scala-steward
-      - "status-success=ci/circleci: build"
-      - "status-success=ci/circleci: unit_test"
-      - body~=labels:.*semver-patch
+      - check-success=snyk
+      - check-success=unit-tests
     actions:
       review:
         type: APPROVE
+
+  - name: Automatically merge
+    conditions:
+      - author=ovo-scala-steward
+      - check-success=snyk
+      - check-success=unit-tests
+      - "#approved-reviews-by>=1"
+    actions:
       merge:
-        strict: smart
-        strict_method: rebase
         method: merge
-      label:
-        add:
-          - scala-steward
-          - patch-update
-        remove:
-          - failed-update
-      delete_head_branch: {}
