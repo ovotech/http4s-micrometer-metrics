@@ -32,7 +32,8 @@ object Meters4s {
   private val TagReg = """([^:]*)\s*:\s*(.*)""".r
 
   def apply[F[_]: Async](
-      reporter: Reporter[F]
+      reporter: Reporter[F],
+      percentiles: Set[Double] = Set.empty
   ): MetricsOps[F] =
     new MetricsOps[F] {
 
@@ -75,7 +76,8 @@ object Meters4s {
         reporter
           .timer(
             name(classifier, "response-headers-time"),
-            tags(classifier) ++ methodTags(method)
+            tags(classifier) ++ methodTags(method),
+            percentiles
           )
           .flatMap(_.record(elapsed.nanos))
 
@@ -127,7 +129,7 @@ object Meters4s {
           elapsed: Long
       ): F[Unit] =
         reporter
-          .timer(name(classifier, "response-time"), tags)
+          .timer(name(classifier, "response-time"), tags, percentiles)
           .flatMap(_.record(elapsed.nanos))
 
       private def methodTags(method: Method): Map[String, String] = Map(
