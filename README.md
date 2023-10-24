@@ -1,6 +1,5 @@
 # Http4s metrics implementation based on meters4s
 
-[![CircleCI](https://circleci.com/gh/ovotech/http4s-micrometer-metrics/tree/master.svg?style=svg)](https://circleci.com/gh/ovotech/http4s-micrometer-metrics/tree/master)
 [ ![Download](https://api.bintray.com/packages/ovotech/maven/http4s-micrometer-metrics/images/download.svg) ](https://bintray.com/ovotech/maven/http4s-micrometer-metrics/_latestVersion)
 
 
