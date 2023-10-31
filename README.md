@@ -1,6 +1,6 @@
-# Http4s metrics implementation based on meters4s
+# Deprecated
 
-[ ![Download](https://api.bintray.com/packages/ovotech/maven/http4s-micrometer-metrics/images/download.svg) ](https://bintray.com/ovotech/maven/http4s-micrometer-metrics/_latestVersion)
+*This functionality has now been merged into [Meters4s](https://github.com/ovotech/meters4s) as `meters4s-http4s`*
 
 
 This is an implementation of [http4s](https://http4s.org/s) metrics based on [meters4s](https://github.com/ovotech/meters4s).
